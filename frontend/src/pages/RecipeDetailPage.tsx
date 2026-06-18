@@ -94,7 +94,7 @@ export default function RecipeDetailPage() {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', flexShrink: 0, minWidth: 0 }}>
             <Link to={`/recetas/${recipe.id}/cocinar`} className="btn btn-primary btn-md">
               <ChefHat size={15} /> Modo cocina
             </Link>
@@ -112,7 +112,7 @@ export default function RecipeDetailPage() {
       </div>
 
       {/* Ingredients + scaler */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
+      <div className="detail-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
         <div className="card">
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', marginBottom: 'var(--space-4)' }}>
             Ingredientes

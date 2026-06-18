@@ -41,7 +41,7 @@ export default function RecipesPage() {
       </div>
 
       {/* Search + filters */}
-      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="filters-row" style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
         <div className="search-box" style={{ width: 'auto', flex: '1', minWidth: 200 }}>
           <Search size={15} />
           <input

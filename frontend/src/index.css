@@ -369,6 +369,7 @@ input, select, textarea { font-family: inherit; }
   .app-shell {
     flex-direction: column;
     height: 100dvh;
+    padding-bottom: 64px;
   }
 
   .app-sidebar { display: none; }
@@ -384,32 +385,51 @@ input, select, textarea { font-family: inherit; }
     z-index: 40;
   }
 
-  .app-shell { padding-bottom: 64px; }
-
   .app-main { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 
-  .app-content { padding: var(--space-4); padding-bottom: var(--space-6); }
+  .app-content {
+    padding: var(--space-4);
+    padding-bottom: var(--space-6);
+    overflow-x: hidden;
+  }
+
+  /* General overflow guard */
+  .app-content > * { max-width: 100%; }
 
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
   }
+  .page-header > div:last-child { width: 100%; }
 
+  /* Recipe grid */
   .grid-recipes {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .menu-grid-desktop { display: none !important; }
-  .menu-mobile-view  { display: block; }
-  .menu-bank-hint-desktop { display: none; }
-  .menu-bank-hint-mobile  { display: block; }
+  /* Recipe form: 3-col → 1-col */
+  .form-grid-3 { grid-template-columns: 1fr !important; }
 
-  .week-tab { min-width: 0; flex: 1; padding: var(--space-2) var(--space-3); }
-  .week-tab-range { display: none; }
+  /* Recipe detail: 2-col → 1-col */
+  .detail-grid-2 { grid-template-columns: 1fr !important; }
 
-  .recipe-bank-chip { cursor: pointer; }
-  .recipe-bank-chip:hover { transform: none; }
+  /* Cards don't overflow */
+  .card { overflow: hidden; }
+
+  /* Buttons wrap and fill width on mobile */
+  .btn-group-mobile { flex-direction: column; }
+  .btn-group-mobile .btn { width: 100%; justify-content: center; }
+
+  /* Search box full width */
+  .search-box { width: 100% !important; }
+
+  /* Filters wrap */
+  .filters-row { flex-direction: column; align-items: stretch; }
+  .filters-row .search-box { flex: none; }
+
+  /* Ingredient row: quantity + unit stack below name on small screens */
+  .ingredient-row { grid-template-columns: 1fr 70px 90px 32px !important; }
 }
 
 /* ── Top bar ────────────────────────────────────────────────────── */
