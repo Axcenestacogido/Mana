@@ -1,53 +1,70 @@
 import { Link, useLocation } from 'react-router-dom'
+import { BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat } from 'lucide-react'
 
 const navLinks = [
-  { to: '/', label: 'Recetas' },
-  { to: '/menu', label: 'Menú Semanal' },
-  { to: '/compra', label: 'Lista de Compras' },
-  { to: '/ia', label: 'IA' },
+  { to: '/', label: 'Recetas', Icon: BookOpen, exact: true },
+  { to: '/menu', label: 'Menú semanal', Icon: Calendar },
+  { to: '/compra', label: 'Lista de compra', Icon: ShoppingBag },
+  { to: '/ia', label: 'Asistente IA', Icon: Sparkles },
 ]
 
-export default function Navbar() {
-  const location = useLocation()
+export default function Sidebar() {
+  const { pathname } = useLocation()
 
   return (
-    <nav style={{
-      background: '#16a34a',
-      color: 'white',
-      padding: '0 1rem',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1.5rem',
-      height: '56px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-    }}>
-      <Link to="/" style={{ fontWeight: 700, fontSize: '1.25rem', color: 'white', letterSpacing: '-0.5px' }}>
-        🌿 Mana
-      </Link>
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        {navLinks.map(link => {
-          const isActive = link.to === '/'
-            ? location.pathname === '/'
-            : location.pathname.startsWith(link.to)
-          return (
-            <Link
-              key={link.to}
-              to={link.to}
-              style={{
-                padding: '0.375rem 0.75rem',
-                borderRadius: '6px',
-                color: 'white',
-                fontSize: '0.875rem',
-                fontWeight: isActive ? 600 : 400,
-                background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
-                transition: 'background 0.15s',
-              }}
-            >
-              {link.label}
-            </Link>
-          )
-        })}
+    <aside className="app-sidebar">
+      <div className="sidebar-logo">
+        <div className="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <span className="logo-wordmark">Maná</span>
       </div>
-    </nav>
+
+      <span className="nav-section-label">Principal</span>
+      {navLinks.map(({ to, label, Icon, exact }) => {
+        const isActive = exact ? pathname === to : pathname.startsWith(to)
+        return (
+          <Link key={to} to={to} className={`nav-item${isActive ? ' active' : ''}`}>
+            <Icon size={16} strokeWidth={2} />
+            {label}
+          </Link>
+        )
+      })}
+
+      <span className="nav-section-label" style={{ marginTop: 'var(--space-2)' }}>Cocina</span>
+      <Link
+        to="/"
+        className="nav-item"
+        onClick={e => {
+          e.preventDefault()
+          // Se navega desde el detalle de receta
+        }}
+        style={{ opacity: 0.5, cursor: 'default', pointerEvents: 'none' }}
+      >
+        <ChefHat size={16} strokeWidth={2} />
+        Modo cocina
+      </Link>
+
+      <div className="sidebar-footer">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 'var(--radius-full)',
+            background: 'var(--terracotta-100)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)',
+            color: 'var(--terracotta-700)', flexShrink: 0,
+          }}>
+            M
+          </div>
+          <div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-body)' }}>Mi cocina</div>
+            <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-muted)' }}>Personal</div>
+          </div>
+        </div>
+      </div>
+    </aside>
   )
 }

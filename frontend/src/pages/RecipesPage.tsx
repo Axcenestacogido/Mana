@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { getRecipes } from '../api/recipes'
 import RecipeCard from '../components/RecipeCard'
+
+const MEAL_FILTERS = [
+  { value: '', label: 'Todas' },
+  { value: 'desayuno', label: 'Desayuno' },
+  { value: 'comida', label: 'Comida' },
+  { value: 'cena', label: 'Cena' },
+]
 
 export default function RecipesPage() {
   const [search, setSearch] = useState('')
@@ -22,58 +30,74 @@ export default function RecipesPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Mis Recetas</h1>
-        <Link to="/recetas/nueva" className="btn btn-primary">+ Nueva receta</Link>
+        <div>
+          <h1 className="page-title">Recetas</h1>
+          <p className="page-sub">{recipes.length} receta{recipes.length !== 1 ? 's' : ''} en tu colección</p>
+        </div>
+        <Link to="/recetas/nueva" className="btn btn-primary btn-md">
+          <Plus size={16} strokeWidth={2.5} />
+          Nueva receta
+        </Link>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Buscar recetas..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="form-input"
-          style={{ flex: '1', minWidth: '200px' }}
-        />
-        <select
-          value={mealType}
-          onChange={e => setMealType(e.target.value)}
-          className="form-input"
-          style={{ minWidth: '140px' }}
-        >
-          <option value="">Todos los tipos</option>
-          <option value="comida">Comida</option>
-          <option value="cena">Cena</option>
-        </select>
-        <input
-          type="number"
-          placeholder="Máx. minutos"
-          value={maxPrepTime}
-          onChange={e => setMaxPrepTime(e.target.value)}
-          className="form-input"
-          style={{ width: '140px' }}
-          min={0}
-        />
+      {/* Search + filters */}
+      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="search-box" style={{ width: 'auto', flex: '1', minWidth: 200 }}>
+          <Search size={15} />
+          <input
+            type="text"
+            placeholder="Buscar recetas…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          {MEAL_FILTERS.map(f => (
+            <button
+              key={f.value}
+              className={`filter-chip${mealType === f.value ? ' active' : ''}`}
+              onClick={() => setMealType(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <SlidersHorizontal size={14} color="var(--text-muted)" />
+          <input
+            type="number"
+            placeholder="Máx. min."
+            value={maxPrepTime}
+            onChange={e => setMaxPrepTime(e.target.value)}
+            className="form-input"
+            style={{ width: 110, height: 36, fontSize: 'var(--text-sm)' }}
+            min={0}
+          />
+        </div>
       </div>
 
-      {isLoading && <div className="loading">Cargando recetas...</div>}
+      {isLoading && <div className="loading">Cargando recetas…</div>}
       {error && <div className="error-msg">Error al cargar recetas</div>}
 
       {!isLoading && !error && (
-        <>
-          {recipes.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-              <p style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>No se encontraron recetas</p>
-              <Link to="/recetas/nueva" className="btn btn-primary">Crear primera receta</Link>
+        recipes.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             </div>
-          ) : (
-            <div className="grid-recipes">
-              {recipes.map((recipe: any) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
-              ))}
-            </div>
-          )}
-        </>
+            <div className="empty-title">Sin recetas aún</div>
+            <div className="empty-desc">Añade tu primera receta y empieza a organizar tu cocina.</div>
+            <Link to="/recetas/nueva" className="btn btn-primary btn-md" style={{ marginTop: 'var(--space-2)' }}>
+              <Plus size={16} strokeWidth={2.5} /> Crear primera receta
+            </Link>
+          </div>
+        ) : (
+          <div className="grid-recipes">
+            {recipes.map((recipe: any) => (
+              <RecipeCard key={recipe.id} recipe={recipe} />
+            ))}
+          </div>
+        )
       )}
     </div>
   )
