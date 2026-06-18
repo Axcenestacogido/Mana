@@ -209,6 +209,39 @@ input, select, textarea { font-family: inherit; }
   border-top: 1px solid var(--border-subtle);
 }
 
+/* ── AI tabs ────────────────────────────────────────────────────── */
+.ai-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.ai-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+.ai-tab-btn.active {
+  color: var(--text-strong);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+}
+
 /* ── Bottom nav (mobile only) ───────────────────────────────────── */
 .bottom-nav {
   display: none;
@@ -408,7 +441,8 @@ input, select, textarea { font-family: inherit; }
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Recipe form: 3-col → 1-col */
+  /* Recipe form / AI: multi-col → 1-col */
+  .form-grid-2 { grid-template-columns: 1fr !important; }
   .form-grid-3 { grid-template-columns: 1fr !important; }
 
   /* Recipe detail: 2-col → 1-col */
@@ -428,8 +462,18 @@ input, select, textarea { font-family: inherit; }
   .filters-row { flex-direction: column; align-items: stretch; }
   .filters-row .search-box { flex: none; }
 
-  /* Ingredient row: quantity + unit stack below name on small screens */
-  .ingredient-row { grid-template-columns: 1fr 70px 90px 32px !important; }
+  /* Ingredient row narrower on mobile */
+  .ingredient-row { grid-template-columns: 1fr 64px 80px 32px !important; }
+
+  /* AI tabs full-width on mobile */
+  .ai-tabs { width: 100%; }
+  .ai-tab-btn { flex: 1; justify-content: center; padding: 8px 10px; font-size: var(--text-xs); }
+
+  /* CookingMode inner padding */
+  .app-content .cooking-inner { padding: var(--space-4) !important; }
+
+  /* Prevent maxWidth containers from overflowing */
+  [style*="maxWidth"] { max-width: 100% !important; }
 }
 
 /* ── Top bar ────────────────────────────────────────────────────── */

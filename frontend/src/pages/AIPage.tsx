@@ -104,7 +104,7 @@ export default function AIPage() {
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
         {recipe.prep_time_minutes as number} min · {recipe.servings as number} porciones
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
+      <div className="detail-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
         <div>
           <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>Ingredientes</div>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -141,27 +141,12 @@ export default function AIPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{
-        display: 'inline-flex', gap: 4, padding: 4,
-        background: 'var(--surface-sunken)', border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-8)',
-      }}>
+      <div className="ai-tabs" style={{ marginBottom: 'var(--space-8)' }}>
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '8px 16px',
-              fontFamily: 'var(--font-sans)', fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--fw-semibold)',
-              color: tab === id ? 'var(--text-strong)' : 'var(--text-muted)',
-              background: tab === id ? 'var(--surface-card)' : 'transparent',
-              border: 'none', borderRadius: 'var(--radius-sm)',
-              boxShadow: tab === id ? 'var(--shadow-xs)' : 'none',
-              cursor: 'pointer',
-              transition: 'all var(--dur-fast) var(--ease-standard)',
-            }}
+            className={`ai-tab-btn${tab === id ? ' active' : ''}`}
           >
             <Icon size={14} strokeWidth={2} /> {label}
           </button>
@@ -180,7 +165,7 @@ export default function AIPage() {
               placeholder={'pollo\ntomate\najo\ncebolla'}
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-4)' }}>
+          <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-4)' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Tipo de plato</label>
               <select value={mealType} onChange={e => setMealType(e.target.value)} className="form-input">
@@ -224,7 +209,7 @@ export default function AIPage() {
 
       {tab === 'menu' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
+          <div className="form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Preferencias</label>
               <input value={menuPrefs} onChange={e => setMenuPrefs(e.target.value)} className="form-input" placeholder="ligero, variado…" />
@@ -260,7 +245,7 @@ export default function AIPage() {
           {menuSuggestion && (
             <div style={{ background: 'var(--surface-warm)', border: '1px solid var(--terracotta-200)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', marginBottom: 'var(--space-4)' }}>Menú sugerido</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}>
+              <div style={{ overflowX: 'auto', marginBottom: 'var(--space-5)' }}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(100px, 1fr))', gap: 'var(--space-2)', minWidth: 560 }}>
                 {DAYS_FULL.map((day, di) => (
                   <div key={di}>
                     <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-2xs)', color: 'var(--text-muted)', marginBottom: 6, letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase' }}>{day.slice(0, 3)}</div>
@@ -276,7 +261,7 @@ export default function AIPage() {
                     })}
                   </div>
                 ))}
-              </div>
+              </div></div>
               {menuSuggestion.notes && <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>{menuSuggestion.notes}</p>}
               {activeMenu ? (
                 <button onClick={() => applyMenuMutation.mutate()} disabled={applyMenuMutation.isPending} className="btn btn-sage btn-md">
