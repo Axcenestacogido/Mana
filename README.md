@@ -61,3 +61,4 @@ npm run dev
 - **Frontend**: React, TypeScript, Vite
 - **IA**: Claude claude-sonnet-4-6 (Anthropic)
 - **Infraestructura**: Docker Compose
+
