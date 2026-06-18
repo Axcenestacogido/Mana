@@ -93,7 +93,7 @@ export default function SharedMenuPage() {
                     <p style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Ingredientes:</p>
                     <ul style={{ paddingLeft: 18, fontSize: 13, color: '#555' }}>
                       {recipe.ingredients.map((ing, i) => (
-                        <li key={i}>{ing.name}{ing.quantity ? ` — ${ing.quantity} ${ing.unit ?? ''}` : ''}</li>
+                        <li key={i}>{ing.ingredient_name}{ing.quantity ? ` — ${ing.quantity} ${ing.unit ?? ''}` : ''}</li>
                       ))}
                     </ul>
                   </div>

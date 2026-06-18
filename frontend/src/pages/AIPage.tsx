@@ -1,13 +1,24 @@
 import { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Sparkles, ChefHat, Calendar, Camera } from 'lucide-react'
+import { Sparkles, ChefHat, Calendar, Camera, Save } from 'lucide-react'
 import { generateFromIngredients, recipeVariation, suggestWeeklyMenu, importFromImage } from '../api/ai'
 import { createRecipe, getRecipes } from '../api/recipes'
 import { getMenus, setMenuEntry } from '../api/menu'
 
+const TABS = [
+  { id: 'ingredients', label: 'Receta nueva', Icon: Sparkles },
+  { id: 'variation',   label: 'Variación',    Icon: ChefHat },
+  { id: 'menu',        label: 'Menú semanal', Icon: Calendar },
+  { id: 'photo',       label: 'Importar foto', Icon: Camera },
+] as const
+
+type TabId = typeof TABS[number]['id']
+
+const DAYS_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
 export default function AIPage() {
   const qc = useQueryClient()
-  const [tab, setTab] = useState<'ingredients' | 'variation' | 'menu' | 'photo'>('ingredients')
+  const [tab, setTab] = useState<TabId>('ingredients')
 
   const [ingsText, setIngsText] = useState('')
   const [mealType, setMealType] = useState('comida')
@@ -21,7 +32,7 @@ export default function AIPage() {
   const [menuPrefs, setMenuPrefs] = useState('')
   const [menuSeason, setMenuSeason] = useState('')
   const [menuBudget, setMenuBudget] = useState('')
-  const [menuSuggestion, setMenuSuggestion] = useState<{ menu: {day_of_week: number; meal_type: string; recipe_id: number}[]; notes: string } | null>(null)
+  const [menuSuggestion, setMenuSuggestion] = useState<{ menu: { day_of_week: number; meal_type: string; recipe_id: number }[]; notes: string } | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -82,117 +93,145 @@ export default function AIPage() {
     setPreviewUrl(URL.createObjectURL(file))
   }
 
-  const tabStyle = (t: string): React.CSSProperties => ({
-    padding: '10px 18px', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14,
-    background: tab === t ? '#b5451b' : '#f0f0f0', color: tab === t ? 'white' : '#666',
-  })
-  const btnStyle: React.CSSProperties = { padding: '10px 20px', background: '#b5451b', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }
-  const inpStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14 }
-  const labelStyle: React.CSSProperties = { fontWeight: 600, display: 'block', marginBottom: 6, fontSize: 14 }
-  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-
   const RecipePreview = ({ recipe, onSave }: { recipe: Record<string, unknown>; onSave: () => void }) => (
-    <div style={{ background: '#fef3ee', borderRadius: 12, padding: 20 }}>
-      <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>{recipe.name as string}</h3>
-      <p style={{ color: '#666', marginBottom: 12 }}>{recipe.prep_time_minutes as number} min · {recipe.servings as number} porciones</p>
-      <div style={{ marginBottom: 12 }}>
-        <strong>Ingredientes:</strong>
-        <ul style={{ marginTop: 6, paddingLeft: 20 }}>
-          {(recipe.ingredients as {name: string; quantity?: number; unit?: string}[] ?? []).map((i, idx) => (
-            <li key={idx}>{i.name}{i.quantity ? ` — ${i.quantity} ${i.unit ?? ''}` : ''}</li>
-          ))}
-        </ul>
+    <div style={{
+      background: 'var(--surface-warm)', border: '1px solid var(--terracotta-200)',
+      borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)',
+    }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', marginBottom: 'var(--space-1)' }}>
+        {recipe.name as string}
+      </h3>
+      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+        {recipe.prep_time_minutes as number} min · {recipe.servings as number} porciones
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', marginBottom: 'var(--space-5)' }}>
+        <div>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>Ingredientes</div>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {(recipe.ingredients as { name: string; quantity?: number; unit?: string }[] ?? []).map((i, idx) => (
+              <li key={idx} style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', display: 'flex', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid var(--terracotta-100)' }}>
+                <span>{i.name}</span>
+                {i.quantity && <span style={{ color: 'var(--text-muted)' }}>{i.quantity} {i.unit}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>Preparación</div>
+          <ol style={{ paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(recipe.steps as string[] ?? []).map((s, idx) => (
+              <li key={idx} style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', lineHeight: 'var(--leading-relaxed)' }}>{s}</li>
+            ))}
+          </ol>
+        </div>
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <strong>Pasos:</strong>
-        <ol style={{ marginTop: 6, paddingLeft: 20 }}>
-          {(recipe.steps as string[] ?? []).map((s, idx) => <li key={idx} style={{ marginBottom: 4 }}>{s}</li>)}
-        </ol>
-      </div>
-      <button onClick={onSave} disabled={saveRecipeMutation.isPending} style={btnStyle}>
-        {saveRecipeMutation.isPending ? 'Guardando...' : '💾 Guardar receta'}
+      <button onClick={onSave} disabled={saveRecipeMutation.isPending} className="btn btn-primary btn-md">
+        <Save size={15} /> {saveRecipeMutation.isPending ? 'Guardando…' : 'Guardar receta'}
       </button>
     </div>
   )
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', padding: 24 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Asistente de IA</h1>
-      <p style={{ color: '#666', marginBottom: 24 }}>Genera recetas, variaciones y menús con inteligencia artificial.</p>
+    <div style={{ maxWidth: 780 }}>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Asistente IA</h1>
+          <p className="page-sub">Genera recetas, variaciones y menús con inteligencia artificial</p>
+        </div>
+      </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
-        <button style={tabStyle('ingredients')} onClick={() => setTab('ingredients')}>
-          <Sparkles size={14} style={{ display: 'inline', marginRight: 6 }} />Receta nueva
-        </button>
-        <button style={tabStyle('variation')} onClick={() => setTab('variation')}>
-          <ChefHat size={14} style={{ display: 'inline', marginRight: 6 }} />Variación
-        </button>
-        <button style={tabStyle('menu')} onClick={() => setTab('menu')}>
-          <Calendar size={14} style={{ display: 'inline', marginRight: 6 }} />Menú semanal
-        </button>
-        <button style={tabStyle('photo')} onClick={() => setTab('photo')}>
-          <Camera size={14} style={{ display: 'inline', marginRight: 6 }} />Importar foto
-        </button>
+      {/* Tabs */}
+      <div style={{
+        display: 'inline-flex', gap: 4, padding: 4,
+        background: 'var(--surface-sunken)', border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-8)',
+      }}>
+        {TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '8px 16px',
+              fontFamily: 'var(--font-sans)', fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-semibold)',
+              color: tab === id ? 'var(--text-strong)' : 'var(--text-muted)',
+              background: tab === id ? 'var(--surface-card)' : 'transparent',
+              border: 'none', borderRadius: 'var(--radius-sm)',
+              boxShadow: tab === id ? 'var(--shadow-xs)' : 'none',
+              cursor: 'pointer',
+              transition: 'all var(--dur-fast) var(--ease-standard)',
+            }}
+          >
+            <Icon size={14} strokeWidth={2} /> {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'ingredients' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={labelStyle}>Ingredientes disponibles (uno por línea)</label>
-            <textarea value={ingsText} onChange={e => setIngsText(e.target.value)} rows={5} style={inpStyle}
-              placeholder={'pollo\ntomate\najo\ncebolla'} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div className="form-group">
+            <label className="form-label">Ingredientes disponibles (uno por línea)</label>
+            <textarea
+              value={ingsText}
+              onChange={e => setIngsText(e.target.value)}
+              rows={5}
+              className="form-input"
+              placeholder={'pollo\ntomate\najo\ncebolla'}
+            />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Tipo de plato</label>
-              <select value={mealType} onChange={e => setMealType(e.target.value)} style={inpStyle}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Tipo de plato</label>
+              <select value={mealType} onChange={e => setMealType(e.target.value)} className="form-input">
                 <option value="comida">Comida</option>
                 <option value="cena">Cena</option>
+                <option value="desayuno">Desayuno</option>
               </select>
             </div>
-            <div>
-              <label style={labelStyle}>Preferencias</label>
-              <input value={prefs} onChange={e => setPrefs(e.target.value)} style={inpStyle} placeholder="sin gluten, bajo en calorías..." />
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Preferencias</label>
+              <input value={prefs} onChange={e => setPrefs(e.target.value)} className="form-input" placeholder="sin gluten, bajo en calorías…" />
             </div>
           </div>
-          <button onClick={() => genFromIngsMutation.mutate()} disabled={!ingsText || genFromIngsMutation.isPending} style={btnStyle}>
-            {genFromIngsMutation.isPending ? 'Generando...' : '✨ Generar receta'}
+          <button onClick={() => genFromIngsMutation.mutate()} disabled={!ingsText || genFromIngsMutation.isPending} className="btn btn-primary btn-md" style={{ alignSelf: 'flex-start' }}>
+            <Sparkles size={15} /> {genFromIngsMutation.isPending ? 'Generando…' : 'Generar receta'}
           </button>
           {generatedRecipe && <RecipePreview recipe={generatedRecipe} onSave={() => saveRecipeMutation.mutate(generatedRecipe)} />}
         </div>
       )}
 
       {tab === 'variation' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={labelStyle}>Receta a modificar</label>
-            <select value={selectedRecipeId ?? ''} onChange={e => setSelectedRecipeId(Number(e.target.value))} style={inpStyle}>
-              <option value="">Selecciona una receta...</option>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div className="form-group">
+            <label className="form-label">Receta a modificar</label>
+            <select value={selectedRecipeId ?? ''} onChange={e => setSelectedRecipeId(Number(e.target.value))} className="form-input">
+              <option value="">Selecciona una receta…</option>
               {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
-          <div>
-            <label style={labelStyle}>¿Qué variación quieres?</label>
-            <input value={variationReq} onChange={e => setVariationReq(e.target.value)} style={inpStyle}
-              placeholder="sin gluten, más ligera, sin lácteos, versión vegana..." />
+          <div className="form-group">
+            <label className="form-label">¿Qué variación quieres?</label>
+            <input value={variationReq} onChange={e => setVariationReq(e.target.value)} className="form-input"
+              placeholder="sin gluten, más ligera, sin lácteos, versión vegana…" />
           </div>
-          <button onClick={() => variationMutation.mutate()} disabled={!selectedRecipeId || !variationReq || variationMutation.isPending} style={btnStyle}>
-            {variationMutation.isPending ? 'Generando...' : '✨ Crear variación'}
+          <button onClick={() => variationMutation.mutate()} disabled={!selectedRecipeId || !variationReq || variationMutation.isPending} className="btn btn-primary btn-md" style={{ alignSelf: 'flex-start' }}>
+            <Sparkles size={15} /> {variationMutation.isPending ? 'Generando…' : 'Crear variación'}
           </button>
           {variationResult && <RecipePreview recipe={variationResult} onSave={() => saveRecipeMutation.mutate(variationResult)} />}
         </div>
       )}
 
       {tab === 'menu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Preferencias</label>
-              <input value={menuPrefs} onChange={e => setMenuPrefs(e.target.value)} style={inpStyle} placeholder="ligero, variado..." />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Preferencias</label>
+              <input value={menuPrefs} onChange={e => setMenuPrefs(e.target.value)} className="form-input" placeholder="ligero, variado…" />
             </div>
-            <div>
-              <label style={labelStyle}>Temporada</label>
-              <select value={menuSeason} onChange={e => setMenuSeason(e.target.value)} style={inpStyle}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Temporada</label>
+              <select value={menuSeason} onChange={e => setMenuSeason(e.target.value)} className="form-input">
                 <option value="">Cualquiera</option>
                 <option value="verano">Verano</option>
                 <option value="invierno">Invierno</option>
@@ -200,9 +239,9 @@ export default function AIPage() {
                 <option value="otoño">Otoño</option>
               </select>
             </div>
-            <div>
-              <label style={labelStyle}>Presupuesto</label>
-              <select value={menuBudget} onChange={e => setMenuBudget(e.target.value)} style={inpStyle}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Presupuesto</label>
+              <select value={menuBudget} onChange={e => setMenuBudget(e.target.value)} className="form-input">
                 <option value="">Sin límite</option>
                 <option value="bajo">Bajo</option>
                 <option value="medio">Medio</option>
@@ -211,40 +250,40 @@ export default function AIPage() {
             </div>
           </div>
           {recipes.length < 7 && (
-            <p style={{ background: '#fff3cd', padding: 12, borderRadius: 8, fontSize: 13, color: '#856404' }}>
+            <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--amber-100)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--warning-fg)' }}>
               Necesitas al menos 7 recetas para generar un menú completo. Tienes {recipes.length}.
-            </p>
+            </div>
           )}
-          <button onClick={() => menuMutation.mutate()} disabled={menuMutation.isPending} style={btnStyle}>
-            {menuMutation.isPending ? 'Generando...' : '✨ Sugerir menú semanal'}
+          <button onClick={() => menuMutation.mutate()} disabled={menuMutation.isPending} className="btn btn-primary btn-md" style={{ alignSelf: 'flex-start' }}>
+            <Calendar size={15} /> {menuMutation.isPending ? 'Generando…' : 'Sugerir menú semanal'}
           </button>
           {menuSuggestion && (
-            <div style={{ background: '#fef3ee', borderRadius: 12, padding: 20 }}>
-              <h3 style={{ fontWeight: 700, marginBottom: 12 }}>Menú sugerido</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 16 }}>
-                {DAYS.map((day, di) => (
+            <div style={{ background: 'var(--surface-warm)', border: '1px solid var(--terracotta-200)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', marginBottom: 'var(--space-4)' }}>Menú sugerido</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}>
+                {DAYS_FULL.map((day, di) => (
                   <div key={di}>
-                    <div style={{ fontWeight: 600, fontSize: 11, color: '#666', marginBottom: 4 }}>{day}</div>
+                    <div style={{ fontWeight: 'var(--fw-bold)', fontSize: 'var(--text-2xs)', color: 'var(--text-muted)', marginBottom: 6, letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase' }}>{day.slice(0, 3)}</div>
                     {['comida', 'cena'].map(meal => {
                       const entry = menuSuggestion.menu.find(e => e.day_of_week === di && e.meal_type === meal)
                       const recipe = recipes.find(r => r.id === entry?.recipe_id)
                       return (
-                        <div key={meal} style={{ fontSize: 11, background: 'white', borderRadius: 4, padding: 4, marginBottom: 4 }}>
-                          <span style={{ color: '#999', fontSize: 10 }}>{meal}: </span>
-                          {recipe?.name ?? '—'}
+                        <div key={meal} style={{ fontSize: 'var(--text-xs)', background: 'var(--surface-card)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                          <span style={{ color: 'var(--text-subtle)', fontSize: 'var(--text-2xs)', display: 'block', marginBottom: 2 }}>{meal}</span>
+                          <span style={{ color: 'var(--text-body)', fontWeight: 'var(--fw-medium)' }}>{recipe?.name ?? '—'}</span>
                         </div>
                       )
                     })}
                   </div>
                 ))}
               </div>
-              {menuSuggestion.notes && <p style={{ color: '#666', fontSize: 13, marginBottom: 12 }}>{menuSuggestion.notes}</p>}
+              {menuSuggestion.notes && <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>{menuSuggestion.notes}</p>}
               {activeMenu ? (
-                <button onClick={() => applyMenuMutation.mutate()} disabled={applyMenuMutation.isPending} style={btnStyle}>
-                  {applyMenuMutation.isPending ? 'Aplicando...' : '📅 Aplicar al menú actual'}
+                <button onClick={() => applyMenuMutation.mutate()} disabled={applyMenuMutation.isPending} className="btn btn-sage btn-md">
+                  <Calendar size={15} /> {applyMenuMutation.isPending ? 'Aplicando…' : 'Aplicar al menú actual'}
                 </button>
               ) : (
-                <p style={{ fontSize: 13, color: '#888' }}>Crea un menú semanal primero para poder aplicar esta sugerencia.</p>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Crea un menú semanal primero para poder aplicar esta sugerencia.</p>
               )}
             </div>
           )}
@@ -252,39 +291,45 @@ export default function AIPage() {
       )}
 
       {tab === 'photo' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ color: '#666', fontSize: 14 }}>
-            Sube una foto de una receta escrita a mano, un libro de cocina, un menú en papel o una captura de pantalla.
-            La IA extraerá automáticamente todos los datos.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 'var(--leading-relaxed)' }}>
+            Sube una foto de una receta escrita a mano, un libro de cocina, un menú en papel o una captura de pantalla. La IA extraerá automáticamente todos los datos.
           </p>
-          <div onClick={() => fileInputRef.current?.click()}
-            style={{ border: '2px dashed #ddd', borderRadius: 12, padding: 32, textAlign: 'center', cursor: 'pointer', background: '#faf9f7' }}>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: '2px dashed var(--border-default)', borderRadius: 'var(--radius-xl)',
+              padding: 'var(--space-10)', textAlign: 'center', cursor: 'pointer',
+              background: 'var(--surface-sunken)', transition: 'border-color var(--dur-fast)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+          >
             {previewUrl ? (
-              <img src={previewUrl} alt="Vista previa" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, objectFit: 'contain' }} />
+              <img src={previewUrl} alt="Vista previa" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 'var(--radius-lg)', objectFit: 'contain' }} />
             ) : (
               <>
-                <Camera size={40} style={{ color: '#ccc', display: 'block', margin: '0 auto 12px' }} />
-                <p style={{ color: '#999', margin: 0 }}>Haz clic para seleccionar una imagen</p>
-                <p style={{ color: '#bbb', fontSize: 12, marginTop: 4 }}>JPG, PNG, WEBP — máx. 10 MB</p>
+                <Camera size={40} color="var(--text-subtle)" style={{ display: 'block', margin: '0 auto 12px' }} />
+                <p style={{ color: 'var(--text-muted)', margin: 0, fontWeight: 'var(--fw-medium)' }}>Haz clic para seleccionar una imagen</p>
+                <p style={{ color: 'var(--text-subtle)', fontSize: 'var(--text-sm)', marginTop: 4 }}>JPG, PNG, WEBP — máx. 10 MB</p>
               </>
             )}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
           {selectedFile && !importedRecipe && (
-            <button onClick={() => importMutation.mutate()} disabled={importMutation.isPending} style={btnStyle}>
-              {importMutation.isPending ? 'Analizando imagen...' : '📷 Extraer receta de la imagen'}
+            <button onClick={() => importMutation.mutate()} disabled={importMutation.isPending} className="btn btn-primary btn-md" style={{ alignSelf: 'flex-start' }}>
+              <Camera size={15} /> {importMutation.isPending ? 'Analizando imagen…' : 'Extraer receta de la imagen'}
             </button>
           )}
           {importMutation.isError && (
-            <p style={{ color: '#c00', background: '#fee', padding: 12, borderRadius: 8, fontSize: 14 }}>
-              No se pudo extraer ninguna receta. Prueba con una foto más clara.
-            </p>
+            <div className="error-msg">No se pudo extraer ninguna receta. Prueba con una foto más clara.</div>
           )}
           {importedRecipe && (
             <>
-              <p style={{ color: '#2a7a3b', background: '#e8f5e9', padding: 10, borderRadius: 8, fontSize: 14 }}>
-                ✅ Receta detectada correctamente
-              </p>
+              <div style={{ background: 'var(--success-soft)', border: '1px solid var(--sage-200)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--success-fg)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Receta detectada correctamente
+              </div>
               <RecipePreview recipe={importedRecipe} onSave={() => saveRecipeMutation.mutate(importedRecipe)} />
             </>
           )}

@@ -6,7 +6,11 @@ import { getMenus, createMenu, setMenuEntry, generateMenu, shareMenu, revokeShar
 import { getRecipes } from '../api/recipes'
 import type { WeeklyMenu, Recipe } from '../types'
 
-const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+const MEAL_SLOTS = ['comida', 'cena']
+
+const MEAL_LABEL: Record<string, string> = { comida: 'Comida', cena: 'Cena' }
+const MEAL_BADGE: Record<string, string> = { comida: 'badge-primary', cena: 'badge-info' }
 
 function getMonday(d = new Date()) {
   const day = d.getDay()
@@ -74,97 +78,175 @@ export default function WeeklyMenuPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700 }}>Menú semanal</h1>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Menú semanal</h1>
+          {activeMenu && (
+            <p className="page-sub">{activeMenu.name ?? activeMenu.week_start_date}</p>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
           {activeMenu && (
             <>
-              <Link to={`/compra/${activeMenu.id}`}>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
-                  <ShoppingCart size={16} /> Lista compra
-                </button>
+              <Link to={`/compra/${activeMenu.id}`} className="btn btn-secondary btn-md">
+                <ShoppingCart size={15} /> Lista de compra
               </Link>
-              <button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
-                <RefreshCw size={16} /> {generateMutation.isPending ? 'Generando...' : 'Auto-generar'}
+              <button
+                onClick={() => generateMutation.mutate()}
+                disabled={generateMutation.isPending}
+                className="btn btn-secondary btn-md"
+              >
+                <RefreshCw size={15} /> {generateMutation.isPending ? 'Generando…' : 'Auto-generar'}
               </button>
-              <button onClick={() => shareMutation.mutate()} disabled={shareMutation.isPending}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
-                <Share2 size={16} /> Compartir
+              <button
+                onClick={() => shareMutation.mutate()}
+                disabled={shareMutation.isPending}
+                className="btn btn-secondary btn-md"
+              >
+                <Share2 size={15} /> Compartir
               </button>
             </>
           )}
-          <button onClick={() => createMutation.mutate()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#b5451b', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600 }}>
-            <Plus size={16} /> Nuevo menú
+          <button onClick={() => createMutation.mutate()} className="btn btn-primary btn-md">
+            <Plus size={15} /> Nuevo menú
           </button>
         </div>
       </div>
 
+      {/* Share banner */}
       {shareUrl && (
-        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Share2 size={16} style={{ color: '#2e7d32', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: '#1b5e20', flex: 1, wordBreak: 'break-all' }}>{shareUrl}</span>
-          <button onClick={copyShareUrl}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: '#2e7d32', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
-            {copied ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
+        <div style={{
+          background: 'var(--success-soft)', border: '1px solid var(--sage-200)',
+          borderRadius: 'var(--radius-lg)', padding: 'var(--space-3) var(--space-4)',
+          marginBottom: 'var(--space-5)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap',
+        }}>
+          <Share2 size={15} color="var(--success)" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--success-fg)', flex: 1, wordBreak: 'break-all' }}>{shareUrl}</span>
+          <button onClick={copyShareUrl} className="btn btn-sage btn-sm">
+            {copied ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar</>}
           </button>
-          <button onClick={() => revokeMutation.mutate()}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: '#c62828', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
-            <X size={14} /> Revocar
+          <button onClick={() => revokeMutation.mutate()} className="btn btn-danger btn-sm">
+            <X size={13} /> Revocar
           </button>
         </div>
       )}
 
+      {/* Menu selector */}
       {menus.length > 1 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
           {menus.map(m => (
-            <button key={m.id} onClick={() => setActiveMenuId(m.id)}
-              style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid', fontSize: 13,
-                background: activeMenu?.id === m.id ? '#b5451b' : 'white',
-                color: activeMenu?.id === m.id ? 'white' : '#666',
-                borderColor: activeMenu?.id === m.id ? '#b5451b' : '#ddd' }}>
+            <button
+              key={m.id}
+              onClick={() => setActiveMenuId(m.id)}
+              className={`filter-chip${activeMenu?.id === m.id ? ' active' : ''}`}
+            >
               {m.name ?? m.week_start_date}
             </button>
           ))}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-        {DAYS.map((day, di) => (
-          <div key={di}>
-            <div style={{ textAlign: 'center', fontWeight: 600, padding: '8px 0', fontSize: 13, color: '#666' }}>{day}</div>
-            {['comida', 'cena'].map(meal => {
-              const entry = activeMenu ? getEntry(activeMenu, di, meal) : null
-              return (
-                <div key={meal}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={() => handleDrop(di, meal)}
-                  onClick={() => entry?.recipe && setEntryMutation.mutate({ day: di, meal, recipeId: undefined })}
-                  style={{ minHeight: 70, border: '2px dashed #e0d8d0', borderRadius: 8, padding: 6, marginBottom: 6,
-                    background: entry?.recipe ? '#fef3ee' : 'white', cursor: 'pointer' }}>
-                  <div style={{ fontSize: 10, color: '#999', marginBottom: 4, textTransform: 'uppercase' }}>{meal}</div>
-                  {entry?.recipe
-                    ? <div style={{ fontSize: 12, fontWeight: 600, color: '#b5451b', lineHeight: 1.3 }}>{entry.recipe.name}</div>
-                    : <div style={{ fontSize: 11, color: '#ccc' }}>Arrastra aquí</div>
-                  }
-                </div>
-              )
-            })}
-          </div>
-        ))}
+      {/* Weekly grid */}
+      <div style={{
+        background: 'var(--surface-card)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-xl)',
+        padding: 'var(--space-5)',
+        boxShadow: 'var(--shadow-sm)',
+        overflowX: 'auto',
+        marginBottom: 'var(--space-8)',
+      }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(110px, 1fr))', gap: 'var(--space-3)', minWidth: 700 }}>
+          {DAYS.map((day, di) => (
+            <div key={di}>
+              <div style={{
+                textAlign: 'center', padding: 'var(--space-2) 0 var(--space-3)',
+                fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)',
+                letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase',
+                color: 'var(--text-muted)',
+              }}>
+                {day}
+              </div>
+              {MEAL_SLOTS.map(meal => {
+                const entry = activeMenu ? getEntry(activeMenu, di, meal) : null
+                return (
+                  <div
+                    key={meal}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={() => handleDrop(di, meal)}
+                    onClick={() => entry?.recipe && setEntryMutation.mutate({ day: di, meal, recipeId: undefined })}
+                    style={{
+                      minHeight: 72, borderRadius: 'var(--radius-md)',
+                      padding: 'var(--space-3)', marginBottom: 'var(--space-2)',
+                      border: `1px ${entry?.recipe ? 'solid' : 'dashed'} var(--border-subtle)`,
+                      background: entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)',
+                      cursor: entry?.recipe ? 'pointer' : 'default',
+                      transition: 'background var(--dur-fast)',
+                    }}
+                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe) e.currentTarget.style.background = 'var(--terracotta-100)' }}
+                    onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe) e.currentTarget.style.background = 'var(--surface-warm)' }}
+                  >
+                    <div style={{
+                      fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
+                      letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase',
+                      color: 'var(--text-subtle)', marginBottom: 4,
+                    }}>
+                      {MEAL_LABEL[meal]}
+                    </div>
+                    {entry?.recipe ? (
+                      <>
+                        <div style={{
+                          fontFamily: 'var(--font-display)', fontSize: 'var(--text-sm)',
+                          fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)',
+                          lineHeight: 'var(--leading-snug)', marginBottom: 4,
+                        }}>
+                          {entry.recipe.name}
+                        </div>
+                        <span className={`badge badge-sm ${MEAL_BADGE[meal]}`}>{MEAL_LABEL[meal]}</span>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-subtle)', marginTop: 4 }}>
+                        Arrastra aquí
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div style={{ marginTop: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Recetas disponibles</h2>
-        <p style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>Arrastra una receta al tablero para asignarla</p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {/* Recipe bank */}
+      <div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', marginBottom: 'var(--space-2)' }}>
+          Tus recetas
+        </h2>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+          Arrastra una receta al tablero para asignarla
+        </p>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
           {recipes.map(r => (
-            <div key={r.id} draggable onDragStart={() => setDragging(r)}
-              style={{ background: 'white', border: '1px solid #e5e0da', borderRadius: 8, padding: '8px 12px',
-                fontSize: 13, cursor: 'grab', userSelect: 'none',
-                borderLeft: `3px solid ${r.meal_type === 'comida' ? '#b5451b' : '#4a7c59'}` }}>
+            <div
+              key={r.id}
+              draggable
+              onDragStart={() => setDragging(r)}
+              style={{
+                background: 'var(--surface-card)',
+                border: `1px solid var(--border-subtle)`,
+                borderLeft: `3px solid ${r.meal_type === 'comida' ? 'var(--primary)' : 'var(--accent)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 14px',
+                fontSize: 'var(--text-sm)',
+                cursor: 'grab',
+                userSelect: 'none',
+                boxShadow: 'var(--shadow-xs)',
+                transition: 'box-shadow var(--dur-fast)',
+                fontWeight: 'var(--fw-medium)',
+                color: 'var(--text-body)',
+              }}
+            >
               {r.name}
             </div>
           ))}

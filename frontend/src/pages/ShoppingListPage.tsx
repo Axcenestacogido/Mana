@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Clipboard, Printer, RefreshCw, Trash2, Check } from 'lucide-react'
 import { getMenus } from '../api/menu'
 import { getShoppingList, generateShoppingList, toggleShoppingItem, deleteShoppingList } from '../api/shopping'
 import { ShoppingItem } from '../types'
@@ -12,9 +13,7 @@ export default function ShoppingListPage() {
     queryKey: ['menus'],
     queryFn: getMenus,
     onSuccess: (data: any[]) => {
-      if (data.length > 0 && !selectedMenuId) {
-        setSelectedMenuId(data[0].id)
-      }
+      if (data.length > 0 && !selectedMenuId) setSelectedMenuId(data[0].id)
     },
   } as any)
 
@@ -50,68 +49,75 @@ export default function ShoppingListPage() {
 
   const checkedCount = (items as ShoppingItem[]).filter(i => i.is_checked).length
   const totalCount = (items as ShoppingItem[]).length
+  const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0
 
   return (
-    <div style={{ maxWidth: '700px' }}>
+    <div style={{ maxWidth: 680 }}>
       <div className="page-header">
-        <h1 className="page-title">Lista de Compras</h1>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} className="no-print">
-          <button onClick={handleCopy} className="btn btn-secondary" disabled={totalCount === 0}>
-            📋 Copiar lista
+        <div>
+          <h1 className="page-title">Lista de compra</h1>
+          {totalCount > 0 && (
+            <p className="page-sub">{checkedCount} de {totalCount} ingredientes comprados</p>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }} className="no-print">
+          <button onClick={handleCopy} disabled={totalCount === 0} className="btn btn-secondary btn-md">
+            <Clipboard size={15} /> Copiar
           </button>
-          <button onClick={() => window.print()} className="btn btn-secondary">
-            🖨 Imprimir
+          <button onClick={() => window.print()} className="btn btn-secondary btn-md">
+            <Printer size={15} /> Imprimir
           </button>
-          <button
-            onClick={() => generateMutation.mutate()}
-            className="btn btn-primary"
-            disabled={!menuId || generateMutation.isPending}
-          >
-            {generateMutation.isPending ? 'Generando...' : '🔄 Generar lista'}
+          <button onClick={() => generateMutation.mutate()} disabled={!menuId || generateMutation.isPending} className="btn btn-primary btn-md">
+            <RefreshCw size={15} /> {generateMutation.isPending ? 'Generando…' : 'Generar lista'}
           </button>
         </div>
       </div>
 
-      <div className="no-print" style={{ marginBottom: '1rem' }}>
-        <div className="form-group">
-          <label className="form-label">Seleccionar menú:</label>
+      {/* Menu selector */}
+      {(menus as any[]).length > 1 && (
+        <div className="no-print form-group" style={{ maxWidth: 320 }}>
+          <label className="form-label">Menú:</label>
           <select
             value={menuId || ''}
             onChange={e => setSelectedMenuId(parseInt(e.target.value))}
             className="form-input"
-            style={{ maxWidth: '300px' }}
           >
             {(menus as any[]).map((m: any) => (
               <option key={m.id} value={m.id}>{m.name || `Semana ${m.week_start_date}`}</option>
             ))}
           </select>
         </div>
-      </div>
+      )}
 
       {!menuId && (
-        <div className="card" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+        <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', color: 'var(--text-muted)' }}>
           No hay menús disponibles. Crea un menú semanal primero.
         </div>
       )}
 
-      {menuId && isLoading && <div className="loading">Cargando...</div>}
+      {menuId && isLoading && <div className="loading">Cargando…</div>}
 
       {menuId && !isLoading && (
         <>
+          {/* Progress bar */}
           {totalCount > 0 && (
-            <div style={{ marginBottom: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-              {checkedCount} de {totalCount} ingredientes comprados
-              <div style={{ marginTop: '0.5rem', height: '6px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${totalCount > 0 ? (checkedCount / totalCount) * 100 : 0}%`, background: '#16a34a', borderRadius: '999px', transition: 'width 0.3s' }} />
+            <div style={{ marginBottom: 'var(--space-5)' }}>
+              <div style={{ height: 6, background: 'var(--neutral-200)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', width: `${progress}%`,
+                  background: 'var(--accent)',
+                  borderRadius: 'var(--radius-full)',
+                  transition: 'width var(--dur-slow) var(--ease-standard)',
+                }} />
               </div>
             </div>
           )}
 
-          <div className="card">
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             {totalCount === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-                <p style={{ marginBottom: '1rem' }}>La lista está vacía</p>
-                <button onClick={() => generateMutation.mutate()} className="btn btn-primary">
+              <div style={{ textAlign: 'center', padding: 'var(--space-10)', color: 'var(--text-muted)' }}>
+                <p style={{ marginBottom: 'var(--space-4)' }}>La lista está vacía</p>
+                <button onClick={() => generateMutation.mutate()} className="btn btn-primary btn-md">
                   Generar lista de compras
                 </button>
               </div>
@@ -122,35 +128,33 @@ export default function ShoppingListPage() {
                     key={item.id}
                     onClick={() => toggleMutation.mutate(item.id)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.625rem 0.5rem',
-                      borderBottom: i < totalCount - 1 ? '1px solid #f3f4f6' : 'none',
+                      display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                      padding: 'var(--space-3) var(--space-5)',
+                      borderBottom: i < totalCount - 1 ? '1px solid var(--border-subtle)' : 'none',
                       cursor: 'pointer',
-                      opacity: item.is_checked ? 0.5 : 1,
-                      transition: 'opacity 0.15s',
+                      opacity: item.is_checked ? 0.55 : 1,
+                      transition: 'opacity var(--dur-fast), background var(--dur-fast)',
                     }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-sunken)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}
                   >
                     <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: '2px solid',
-                      borderColor: item.is_checked ? '#16a34a' : '#d1d5db',
-                      background: item.is_checked ? '#16a34a' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      transition: 'all 0.15s',
+                      width: 20, height: 20, borderRadius: 'var(--radius-xs)',
+                      border: `1.5px solid ${item.is_checked ? 'var(--accent)' : 'var(--border-default)'}`,
+                      background: item.is_checked ? 'var(--accent)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, transition: 'all var(--dur-fast)',
                     }}>
-                      {item.is_checked && <span style={{ color: 'white', fontSize: '0.75rem' }}>✓</span>}
+                      {item.is_checked && <Check size={12} color="white" strokeWidth={3} />}
                     </div>
-                    <span style={{ flex: 1, textTransform: 'capitalize', textDecoration: item.is_checked ? 'line-through' : 'none' }}>
+                    <span style={{
+                      flex: 1, textTransform: 'capitalize', fontSize: 'var(--text-sm)',
+                      color: 'var(--text-body)',
+                      textDecoration: item.is_checked ? 'line-through' : 'none',
+                    }}>
                       {item.ingredient_name}
                     </span>
-                    <span style={{ fontWeight: 500, color: '#374151' }}>
+                    <span style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
                       {item.total_quantity} {item.unit}
                     </span>
                   </li>
@@ -160,9 +164,13 @@ export default function ShoppingListPage() {
           </div>
 
           {totalCount > 0 && (
-            <div className="no-print" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => { if (confirm('¿Eliminar la lista de compras?')) deleteMutation.mutate() }} className="btn btn-danger">
-                Eliminar lista
+            <div className="no-print" style={{ marginTop: 'var(--space-4)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { if (confirm('¿Eliminar la lista de compras?')) deleteMutation.mutate() }}
+                className="btn btn-ghost btn-md"
+                style={{ color: 'var(--danger)' }}
+              >
+                <Trash2 size={14} /> Eliminar lista
               </button>
             </div>
           )}
