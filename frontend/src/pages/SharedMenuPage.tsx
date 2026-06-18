@@ -43,7 +43,8 @@ export default function SharedMenuPage() {
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10 }}>
+        <div style={{ overflowX: 'auto', marginBottom: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 10, minWidth: 600 }}>
           {DAYS.map((day, di) => (
             <div key={di}>
               <div style={{ textAlign: 'center', fontWeight: 700, padding: '10px 0', fontSize: 13, color: '#444' }}>{day}</div>
@@ -72,6 +73,7 @@ export default function SharedMenuPage() {
               })}
             </div>
           ))}
+        </div>
         </div>
 
         {/* Lista de recetas con ingredientes */}
