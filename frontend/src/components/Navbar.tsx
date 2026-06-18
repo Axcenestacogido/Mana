@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat } from 'lucide-react'
+import { BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat, X } from 'lucide-react'
 
 const navLinks = [
   { to: '/', label: 'Recetas', Icon: BookOpen, exact: true },
@@ -8,11 +8,16 @@ const navLinks = [
   { to: '/ia', label: 'Asistente IA', Icon: Sparkles },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const { pathname } = useLocation()
 
   return (
-    <aside className="app-sidebar">
+    <aside className={`app-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="sidebar-logo">
         <div className="logo-mark">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -21,13 +26,18 @@ export default function Sidebar() {
           </svg>
         </div>
         <span className="logo-wordmark">Maná</span>
+        {onClose && (
+          <button onClick={onClose} className="btn btn-ghost btn-sm sidebar-close-btn">
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       <span className="nav-section-label">Principal</span>
       {navLinks.map(({ to, label, Icon, exact }) => {
         const isActive = exact ? pathname === to : pathname.startsWith(to)
         return (
-          <Link key={to} to={to} className={`nav-item${isActive ? ' active' : ''}`}>
+          <Link key={to} to={to} className={`nav-item${isActive ? ' active' : ''}`} onClick={onClose}>
             <Icon size={16} strokeWidth={2} />
             {label}
           </Link>
