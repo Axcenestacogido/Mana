@@ -20,6 +20,9 @@ export const generateMenu = (menuId: number, rules?: Record<string, string>) =>
     params: { rules: rules ? JSON.stringify(rules) : undefined }
   }).then(r => r.data)
 
+export const updateMenu = (id: number, data: { name?: string }) =>
+  client.patch<{ id: number; name: string; week_start_date: string }>(`/menu/${id}`, data).then(r => r.data)
+
 export const deleteMenu = (id: number) =>
   client.delete(`/menu/${id}`)
 

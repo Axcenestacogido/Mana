@@ -129,6 +129,17 @@ def create_menu(menu_in: WeeklyMenuCreate, db: Session = Depends(get_db)):
     db.refresh(menu)
     return menu_to_response(menu)
 
+@router.patch("/{menu_id}")
+def update_menu(menu_id: int, data: dict, db: Session = Depends(get_db)):
+    menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
+    if not menu:
+        raise HTTPException(status_code=404, detail="Menú no encontrado")
+    if "name" in data:
+        menu.name = data["name"]
+    db.commit()
+    db.refresh(menu)
+    return {"id": menu.id, "week_start_date": menu.week_start_date, "name": menu.name, "created_at": menu.created_at}
+
 @router.delete("/{menu_id}")
 def delete_menu(menu_id: int, db: Session = Depends(get_db)):
     menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
