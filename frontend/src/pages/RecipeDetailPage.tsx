@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRecipe, deleteRecipe } from '../api/recipes'
-import { createRecipeVariation } from '../api/ai'
+import { recipeVariation as createRecipeVariation } from '../api/ai'
 import { createRecipe } from '../api/recipes'
 import PortionScaler from '../components/PortionScaler'
 
@@ -44,7 +44,7 @@ export default function RecipeDetailPage() {
       const saved = await createRecipe({ ...variation, ingredients: variation.ingredients || [] })
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
       setShowVariationModal(false)
-      navigate(`/recipes/${saved.id}`)
+      navigate(`/recetas/${saved.id}`)
     } catch (e: any) {
       setVariationError(e?.response?.data?.detail || 'Error al crear variación')
     } finally {
@@ -78,10 +78,10 @@ export default function RecipeDetailPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Link to={`/recipes/${recipe.id}/cook`} className="btn btn-primary">
+            <Link to={`/recetas/${recipe.id}/cocinar`} className="btn btn-primary">
               👨‍🍳 Modo Cocina
             </Link>
-            <Link to={`/recipes/${recipe.id}/edit`} className="btn btn-secondary">
+            <Link to={`/recetas/${recipe.id}/editar`} className="btn btn-secondary">
               ✏️ Editar
             </Link>
             <button onClick={() => setShowVariationModal(true)} className="btn btn-secondary">

@@ -23,7 +23,7 @@ export default function RecipesPage() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Mis Recetas</h1>
-        <Link to="/recipes/new" className="btn btn-primary">+ Nueva receta</Link>
+        <Link to="/recetas/nueva" className="btn btn-primary">+ Nueva receta</Link>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -64,7 +64,7 @@ export default function RecipesPage() {
           {recipes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
               <p style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>No se encontraron recetas</p>
-              <Link to="/recipes/new" className="btn btn-primary">Crear primera receta</Link>
+              <Link to="/recetas/nueva" className="btn btn-primary">Crear primera receta</Link>
             </div>
           ) : (
             <div className="grid-recipes">

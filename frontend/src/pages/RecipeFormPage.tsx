@@ -60,7 +60,7 @@ export default function RecipeFormPage() {
     mutationFn: (data: any) => createRecipe(data),
     onSuccess: (recipe) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      navigate(`/recipes/${recipe.id}`)
+      navigate(`/recetas/${recipe.id}`)
     },
     onError: (e: any) => setError(e?.response?.data?.detail || 'Error al guardar'),
   })
@@ -70,7 +70,7 @@ export default function RecipeFormPage() {
     onSuccess: (recipe) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
       queryClient.invalidateQueries({ queryKey: ['recipe', id] })
-      navigate(`/recipes/${recipe.id}`)
+      navigate(`/recetas/${recipe.id}`)
     },
     onError: (e: any) => setError(e?.response?.data?.detail || 'Error al actualizar'),
   })
