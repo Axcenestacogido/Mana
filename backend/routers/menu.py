@@ -1,151 +1,164 @@
 import json
 import random
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import WeeklyMenu, MenuEntry, Recipe
-from schemas import WeeklyMenuCreate, WeeklyMenuOut
+from schemas import WeeklyMenuCreate, MenuEntryCreate
 
-router = APIRouter(prefix="/menu", tags=["menu"])
+router = APIRouter()
 
-DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-
-def _menu_to_out(menu: WeeklyMenu) -> dict:
+def menu_to_response(menu: WeeklyMenu) -> dict:
     entries = []
-    for e in menu.entries:
-        entry = {
-            "id": e.id,
-            "day_of_week": e.day_of_week,
-            "meal_type": e.meal_type,
-            "recipe_id": e.recipe_id,
-            "recipe": None,
-        }
-        if e.recipe:
-            entry["recipe"] = {
-                "id": e.recipe.id,
-                "name": e.recipe.name,
-                "meal_type": e.recipe.meal_type,
-                "categories": e.recipe.get_categories(),
-                "prep_time_minutes": e.recipe.prep_time_minutes,
-                "servings": e.recipe.servings,
-                "steps": e.recipe.get_steps(),
-                "photo_url": e.recipe.photo_url,
-                "notes": e.recipe.notes,
-                "created_at": e.recipe.created_at,
-                "ingredients": [
-                    {"name": ri.ingredient.name, "quantity": ri.quantity, "unit": ri.unit}
-                    for ri in e.recipe.ingredients
-                ],
+    for entry in menu.entries:
+        recipe_data = None
+        if entry.recipe:
+            try:
+                category = json.loads(entry.recipe.category) if isinstance(entry.recipe.category, str) else entry.recipe.category
+            except Exception:
+                category = []
+            try:
+                steps = json.loads(entry.recipe.steps) if isinstance(entry.recipe.steps, str) else entry.recipe.steps
+            except Exception:
+                steps = []
+            recipe_data = {
+                "id": entry.recipe.id,
+                "name": entry.recipe.name,
+                "meal_type": entry.recipe.meal_type,
+                "category": category,
+                "prep_time_minutes": entry.recipe.prep_time_minutes,
+                "servings": entry.recipe.servings,
+                "steps": steps,
+                "photo_url": entry.recipe.photo_url,
+                "created_at": entry.recipe.created_at,
+                "ingredients": [],
             }
-        entries.append(entry)
+        entries.append({
+            "id": entry.id,
+            "day_of_week": entry.day_of_week,
+            "meal_type": entry.meal_type,
+            "recipe_id": entry.recipe_id,
+            "recipe": recipe_data,
+        })
     return {
         "id": menu.id,
-        "name": menu.name,
         "week_start_date": menu.week_start_date,
+        "name": menu.name,
         "created_at": menu.created_at,
         "entries": entries,
     }
 
-@router.get("/", response_model=List[WeeklyMenuOut])
+@router.get("")
 def list_menus(db: Session = Depends(get_db)):
-    menus = db.query(WeeklyMenu).order_by(WeeklyMenu.week_start_date.desc()).all()
-    return [_menu_to_out(m) for m in menus]
+    menus = db.query(WeeklyMenu).order_by(WeeklyMenu.created_at.desc()).all()
+    return [{"id": m.id, "week_start_date": m.week_start_date, "name": m.name, "created_at": m.created_at} for m in menus]
 
-@router.get("/{menu_id}", response_model=WeeklyMenuOut)
+@router.get("/current")
+def get_current_menu(db: Session = Depends(get_db)):
+    today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    week_start = monday.isoformat()
+    menu = db.query(WeeklyMenu).filter(WeeklyMenu.week_start_date == week_start).first()
+    if not menu:
+        return None
+    return menu_to_response(menu)
+
+@router.post("/generate-auto")
+def generate_auto_menu(
+    week_start_date: str,
+    custom_rules: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    recipes = db.query(Recipe).all()
+    if not recipes:
+        raise HTTPException(status_code=400, detail="No hay recetas en la base de datos")
+
+    comida_recipes = [r for r in recipes if r.meal_type in ("comida", "ambos")]
+    cena_recipes = [r for r in recipes if r.meal_type in ("cena", "ambos")]
+    if not comida_recipes:
+        comida_recipes = recipes
+    if not cena_recipes:
+        cena_recipes = recipes
+
+    existing = db.query(WeeklyMenu).filter(WeeklyMenu.week_start_date == week_start_date).first()
+    if existing:
+        db.delete(existing)
+        db.commit()
+
+    menu = WeeklyMenu(week_start_date=week_start_date, name=f"Menú semana {week_start_date}")
+    db.add(menu)
+    db.flush()
+
+    used_comida = []
+    used_cena = []
+    for day in range(7):
+        available_comida = [r for r in comida_recipes if r.id not in used_comida]
+        if not available_comida:
+            available_comida = comida_recipes
+            used_comida = []
+        c = random.choice(available_comida)
+        used_comida.append(c.id)
+        db.add(MenuEntry(menu_id=menu.id, day_of_week=day, meal_type="comida", recipe_id=c.id))
+
+        available_cena = [r for r in cena_recipes if r.id not in used_cena]
+        if not available_cena:
+            available_cena = cena_recipes
+            used_cena = []
+        ce = random.choice(available_cena)
+        used_cena.append(ce.id)
+        db.add(MenuEntry(menu_id=menu.id, day_of_week=day, meal_type="cena", recipe_id=ce.id))
+
+    db.commit()
+    db.refresh(menu)
+    return menu_to_response(menu)
+
+@router.get("/{menu_id}")
 def get_menu(menu_id: int, db: Session = Depends(get_db)):
     menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
     if not menu:
         raise HTTPException(status_code=404, detail="Menú no encontrado")
-    return _menu_to_out(menu)
+    return menu_to_response(menu)
 
-@router.post("/", response_model=WeeklyMenuOut, status_code=201)
-def create_menu(data: WeeklyMenuCreate, db: Session = Depends(get_db)):
-    menu = WeeklyMenu(week_start_date=data.week_start_date, name=data.name)
+@router.post("")
+def create_menu(menu_in: WeeklyMenuCreate, db: Session = Depends(get_db)):
+    menu = WeeklyMenu(week_start_date=menu_in.week_start_date, name=menu_in.name)
     db.add(menu)
     db.commit()
     db.refresh(menu)
-    return _menu_to_out(menu)
+    return menu_to_response(menu)
 
-@router.put("/{menu_id}/entry")
-def set_menu_entry(menu_id: int, day_of_week: int, meal_type: str, recipe_id: Optional[int] = None, db: Session = Depends(get_db)):
-    menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
-    if not menu:
-        raise HTTPException(status_code=404, detail="Menú no encontrado")
-    entry = db.query(MenuEntry).filter(
-        MenuEntry.menu_id == menu_id,
-        MenuEntry.day_of_week == day_of_week,
-        MenuEntry.meal_type == meal_type
-    ).first()
-    if entry:
-        entry.recipe_id = recipe_id
-    else:
-        entry = MenuEntry(menu_id=menu_id, day_of_week=day_of_week, meal_type=meal_type, recipe_id=recipe_id)
-        db.add(entry)
-    db.commit()
-    return {"ok": True}
-
-@router.post("/{menu_id}/generate")
-def generate_menu(menu_id: int, rules: Optional[str] = None, db: Session = Depends(get_db)):
-    """Auto-generate menu entries avoiding repeats. rules is JSON like {"5": "pescado"} meaning Friday=pescado category."""
-    menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
-    if not menu:
-        raise HTTPException(status_code=404, detail="Menú no encontrado")
-
-    custom_rules = {}
-    if rules:
-        try:
-            custom_rules = json.loads(rules)
-        except Exception:
-            pass
-
-    # Get recently used recipe ids from last 2 menus
-    recent_menus = db.query(WeeklyMenu).order_by(WeeklyMenu.created_at.desc()).limit(3).all()
-    recent_ids = set()
-    for m in recent_menus:
-        if m.id != menu_id:
-            for e in m.entries:
-                if e.recipe_id:
-                    recent_ids.add(e.recipe_id)
-
-    all_recipes = db.query(Recipe).all()
-    comida_recipes = [r for r in all_recipes if r.meal_type in ("comida", "ambas")]
-    cena_recipes = [r for r in all_recipes if r.meal_type in ("cena", "ambas")]
-
-    def pick(pool, used_ids, category_filter=None):
-        filtered = [r for r in pool if r.id not in used_ids]
-        if category_filter:
-            cat_filtered = [r for r in filtered if category_filter.lower() in " ".join(r.get_categories()).lower() or category_filter.lower() in r.name.lower()]
-            if cat_filtered:
-                filtered = cat_filtered
-        if not filtered:
-            filtered = pool
-        if not filtered:
-            return None
-        return random.choice(filtered)
-
-    used_this_week = set()
-    # Delete existing entries
-    db.query(MenuEntry).filter(MenuEntry.menu_id == menu_id).delete()
-
-    for day in range(7):
-        rule_cat = custom_rules.get(str(day))
-        for meal_type, pool in [("comida", comida_recipes), ("cena", cena_recipes)]:
-            recipe = pick(pool, used_this_week | recent_ids, rule_cat)
-            if recipe:
-                used_this_week.add(recipe.id)
-                entry = MenuEntry(menu_id=menu_id, day_of_week=day, meal_type=meal_type, recipe_id=recipe.id)
-                db.add(entry)
-
-    db.commit()
-    db.refresh(menu)
-    return _menu_to_out(menu)
-
-@router.delete("/{menu_id}", status_code=204)
+@router.delete("/{menu_id}")
 def delete_menu(menu_id: int, db: Session = Depends(get_db)):
     menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
     if not menu:
         raise HTTPException(status_code=404, detail="Menú no encontrado")
     db.delete(menu)
     db.commit()
+    return {"message": "Menú eliminado"}
+
+@router.post("/{menu_id}/entries")
+def add_entry(menu_id: int, entry_in: MenuEntryCreate, db: Session = Depends(get_db)):
+    menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
+    if not menu:
+        raise HTTPException(status_code=404, detail="Menú no encontrado")
+    db.query(MenuEntry).filter(
+        MenuEntry.menu_id == menu_id,
+        MenuEntry.day_of_week == entry_in.day_of_week,
+        MenuEntry.meal_type == entry_in.meal_type
+    ).delete()
+    entry = MenuEntry(menu_id=menu_id, day_of_week=entry_in.day_of_week, meal_type=entry_in.meal_type, recipe_id=entry_in.recipe_id)
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return {"id": entry.id, "day_of_week": entry.day_of_week, "meal_type": entry.meal_type, "recipe_id": entry.recipe_id}
+
+@router.delete("/{menu_id}/entries/{entry_id}")
+def remove_entry(menu_id: int, entry_id: int, db: Session = Depends(get_db)):
+    entry = db.query(MenuEntry).filter(MenuEntry.id == entry_id, MenuEntry.menu_id == menu_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrada no encontrada")
+    db.delete(entry)
+    db.commit()
+    return {"message": "Entrada eliminada"}

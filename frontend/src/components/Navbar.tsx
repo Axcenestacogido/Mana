@@ -1,30 +1,53 @@
 import { Link, useLocation } from 'react-router-dom'
 
-const links = [
+const navLinks = [
   { to: '/', label: 'Recetas' },
-  { to: '/menu', label: 'Menú semanal' },
-  { to: '/ia', label: 'IA' },
-  { to: '/compra', label: 'Lista compra' },
+  { to: '/menu', label: 'Menú Semanal' },
+  { to: '/shopping', label: 'Lista de Compras' },
+  { to: '/ai', label: 'IA' },
 ]
 
 export default function Navbar() {
-  const { pathname } = useLocation()
+  const location = useLocation()
+
   return (
-    <nav style={{ background: '#b5451b', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ color: 'white', fontWeight: 700, fontSize: 18, marginRight: 16, padding: '14px 0' }}>
-        🍽 Recetas
-      </span>
-      {links.map(l => (
-        <Link key={l.to} to={l.to} style={{
-          color: pathname === l.to ? 'white' : 'rgba(255,255,255,0.75)',
-          fontWeight: pathname === l.to ? 600 : 400,
-          padding: '14px 12px',
-          borderBottom: pathname === l.to ? '2px solid white' : '2px solid transparent',
-          fontSize: 15,
-        }}>
-          {l.label}
-        </Link>
-      ))}
+    <nav style={{
+      background: '#16a34a',
+      color: 'white',
+      padding: '0 1rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1.5rem',
+      height: '56px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+    }}>
+      <Link to="/" style={{ fontWeight: 700, fontSize: '1.25rem', color: 'white', letterSpacing: '-0.5px' }}>
+        🌿 Mana
+      </Link>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        {navLinks.map(link => {
+          const isActive = link.to === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(link.to)
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: '6px',
+                color: 'white',
+                fontSize: '0.875rem',
+                fontWeight: isActive ? 600 : 400,
+                background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
+                transition: 'background 0.15s',
+              }}
+            >
+              {link.label}
+            </Link>
+          )
+        })}
+      </div>
     </nav>
   )
 }

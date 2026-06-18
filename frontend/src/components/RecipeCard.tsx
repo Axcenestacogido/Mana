@@ -1,43 +1,51 @@
-import { Clock, Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import type { Recipe } from '../types'
+import { useNavigate } from 'react-router-dom'
+import { Recipe } from '../types'
 
-export default function RecipeCard({ recipe }: { recipe: Recipe }) {
+interface Props {
+  recipe: Recipe
+}
+
+export default function RecipeCard({ recipe }: Props) {
+  const navigate = useNavigate()
+
+  const mealBadge = recipe.meal_type === 'comida'
+    ? { label: 'Comida', style: { background: '#dcfce7', color: '#15803d' } }
+    : recipe.meal_type === 'cena'
+    ? { label: 'Cena', style: { background: '#dbeafe', color: '#1d4ed8' } }
+    : { label: recipe.meal_type, style: { background: '#f3f4f6', color: '#374151' } }
+
   return (
-    <Link to={`/recetas/${recipe.id}`} style={{ textDecoration: 'none' }}>
-      <div style={{
-        background: 'white', borderRadius: 12, overflow: 'hidden',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.1)', transition: 'box-shadow 0.2s',
-        cursor: 'pointer',
-      }}>
-        {recipe.photo_url ? (
-          <img src={recipe.photo_url} alt={recipe.name} style={{ width: '100%', height: 160, objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: '100%', height: 160, background: '#f0ebe5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
-            🍲
-          </div>
-        )}
-        <div style={{ padding: '12px 16px' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{recipe.name}</h3>
-          <div style={{ display: 'flex', gap: 12, color: '#666', fontSize: 13 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Clock size={13} /> {recipe.prep_time_minutes} min
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Users size={13} /> {recipe.servings} pers.
-            </span>
-          </div>
-          {recipe.categories.length > 0 && (
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
-              {recipe.categories.map(c => (
-                <span key={c} style={{ background: '#fef3ee', color: '#b5451b', borderRadius: 99, padding: '2px 8px', fontSize: 11 }}>
-                  {c}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+    <div
+      className="card"
+      onClick={() => navigate(`/recipes/${recipe.id}`)}
+      style={{ cursor: 'pointer', transition: 'box-shadow 0.15s', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = '')}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+        <h3 style={{ fontWeight: 600, fontSize: '1rem', lineHeight: 1.3, flex: 1 }}>{recipe.name}</h3>
+        <span className="badge" style={mealBadge.style}>{mealBadge.label}</span>
       </div>
-    </Link>
+
+      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280' }}>
+        <span>⏱ {recipe.prep_time_minutes} min</span>
+        <span>👥 {recipe.servings} porciones</span>
+      </div>
+
+      {recipe.category.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
+          {recipe.category.map(cat => (
+            <span key={cat} className="badge badge-blue" style={{ fontSize: '0.7rem' }}>{cat}</span>
+          ))}
+        </div>
+      )}
+
+      {recipe.ingredients.length > 0 && (
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem' }}>
+          {recipe.ingredients.slice(0, 3).map(i => i.ingredient_name).join(', ')}
+          {recipe.ingredients.length > 3 ? ` +${recipe.ingredients.length - 3} más` : ''}
+        </p>
+      )}
+    </div>
   )
 }

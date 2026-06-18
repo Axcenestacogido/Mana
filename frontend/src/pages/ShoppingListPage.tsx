@@ -1,82 +1,172 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Printer, Copy, Check } from 'lucide-react'
-import { getShoppingList } from '../api/shopping'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMenus } from '../api/menu'
+import { getShoppingList, generateShoppingList, toggleShoppingItem, deleteShoppingList } from '../api/shopping'
+import { ShoppingItem } from '../types'
 
 export default function ShoppingListPage() {
-  const { menuId } = useParams<{ menuId?: string }>()
-  const [checked, setChecked] = useState<Set<string>>(new Set())
-  const [copied, setCopied] = useState(false)
+  const queryClient = useQueryClient()
+  const [selectedMenuId, setSelectedMenuId] = useState<number | null>(null)
 
-  const { data: menus = [] } = useQuery({ queryKey: ['menus'], queryFn: getMenus })
-  const effectiveId = menuId ? Number(menuId) : menus[0]?.id
+  const { data: menus = [] } = useQuery({
+    queryKey: ['menus'],
+    queryFn: getMenus,
+    onSuccess: (data: any[]) => {
+      if (data.length > 0 && !selectedMenuId) {
+        setSelectedMenuId(data[0].id)
+      }
+    },
+  } as any)
+
+  const menuId = selectedMenuId || (menus as any[])[0]?.id
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['shopping', effectiveId],
-    queryFn: () => getShoppingList(effectiveId!),
-    enabled: Boolean(effectiveId),
+    queryKey: ['shopping', menuId],
+    queryFn: () => getShoppingList(menuId!),
+    enabled: !!menuId,
   })
 
-  const toggle = (name: string) => setChecked(s => {
-    const next = new Set(s)
-    next.has(name) ? next.delete(name) : next.add(name)
-    return next
+  const generateMutation = useMutation({
+    mutationFn: () => generateShoppingList(menuId!),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping', menuId] }),
   })
 
-  const copyText = () => {
-    const text = items.map(i => `${checked.has(i.ingredient_name) ? '✓' : '☐'} ${i.ingredient_name}${i.total_quantity ? ` — ${i.total_quantity} ${i.unit ?? ''}` : ''}`).join('\n')
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const toggleMutation = useMutation({
+    mutationFn: (itemId: number) => toggleShoppingItem(menuId!, itemId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping', menuId] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteShoppingList(menuId!),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shopping', menuId] }),
+  })
+
+  const handleCopy = () => {
+    const text = (items as ShoppingItem[])
+      .map(i => `${i.is_checked ? '✓' : '○'} ${i.ingredient_name}: ${i.total_quantity} ${i.unit}`)
+      .join('\n')
+    navigator.clipboard.writeText(text).then(() => alert('Lista copiada al portapapeles'))
   }
 
+  const checkedCount = (items as ShoppingItem[]).filter(i => i.is_checked).length
+  const totalCount = (items as ShoppingItem[]).length
+
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700 }}>Lista de la compra</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={copyText} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
-            {copied ? <><Check size={16} /> Copiado</> : <><Copy size={16} /> Copiar</>}
+    <div style={{ maxWidth: '700px' }}>
+      <div className="page-header">
+        <h1 className="page-title">Lista de Compras</h1>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} className="no-print">
+          <button onClick={handleCopy} className="btn btn-secondary" disabled={totalCount === 0}>
+            📋 Copiar lista
           </button>
-          <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
-            <Printer size={16} /> Imprimir
+          <button onClick={() => window.print()} className="btn btn-secondary">
+            🖨 Imprimir
+          </button>
+          <button
+            onClick={() => generateMutation.mutate()}
+            className="btn btn-primary"
+            disabled={!menuId || generateMutation.isPending}
+          >
+            {generateMutation.isPending ? 'Generando...' : '🔄 Generar lista'}
           </button>
         </div>
       </div>
 
-      {isLoading ? <p>Cargando...</p> : items.length === 0 ? (
-        <p style={{ color: '#999', textAlign: 'center', padding: 40 }}>No hay ingredientes. Crea un menú semanal primero.</p>
-      ) : (
-        <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          {items.map(item => (
-            <div key={item.ingredient_name} onClick={() => toggle(item.ingredient_name)}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '14px 20px', borderBottom: '1px solid #f5f5f5', cursor: 'pointer',
-                background: checked.has(item.ingredient_name) ? '#f9f9f9' : 'white' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 20, height: 20, borderRadius: 4, border: '2px solid', flexShrink: 0,
-                  borderColor: checked.has(item.ingredient_name) ? '#b5451b' : '#ddd',
-                  background: checked.has(item.ingredient_name) ? '#b5451b' : 'white',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {checked.has(item.ingredient_name) && <Check size={12} color="white" />}
-                </span>
-                <span style={{ textDecoration: checked.has(item.ingredient_name) ? 'line-through' : 'none', color: checked.has(item.ingredient_name) ? '#aaa' : '#1a1a1a' }}>
-                  {item.ingredient_name}
-                </span>
-              </span>
-              {item.total_quantity && (
-                <span style={{ color: '#666', fontSize: 14 }}>{item.total_quantity} {item.unit ?? ''}</span>
-              )}
-            </div>
-          ))}
+      <div className="no-print" style={{ marginBottom: '1rem' }}>
+        <div className="form-group">
+          <label className="form-label">Seleccionar menú:</label>
+          <select
+            value={menuId || ''}
+            onChange={e => setSelectedMenuId(parseInt(e.target.value))}
+            className="form-input"
+            style={{ maxWidth: '300px' }}
+          >
+            {(menus as any[]).map((m: any) => (
+              <option key={m.id} value={m.id}>{m.name || `Semana ${m.week_start_date}`}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {!menuId && (
+        <div className="card" style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+          No hay menús disponibles. Crea un menú semanal primero.
         </div>
       )}
-      {checked.size > 0 && (
-        <p style={{ marginTop: 16, color: '#888', textAlign: 'center', fontSize: 14 }}>
-          {checked.size} de {items.length} artículos marcados
-        </p>
+
+      {menuId && isLoading && <div className="loading">Cargando...</div>}
+
+      {menuId && !isLoading && (
+        <>
+          {totalCount > 0 && (
+            <div style={{ marginBottom: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
+              {checkedCount} de {totalCount} ingredientes comprados
+              <div style={{ marginTop: '0.5rem', height: '6px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${totalCount > 0 ? (checkedCount / totalCount) * 100 : 0}%`, background: '#16a34a', borderRadius: '999px', transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          )}
+
+          <div className="card">
+            {totalCount === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                <p style={{ marginBottom: '1rem' }}>La lista está vacía</p>
+                <button onClick={() => generateMutation.mutate()} className="btn btn-primary">
+                  Generar lista de compras
+                </button>
+              </div>
+            ) : (
+              <ul style={{ listStyle: 'none' }}>
+                {(items as ShoppingItem[]).map((item, i) => (
+                  <li
+                    key={item.id}
+                    onClick={() => toggleMutation.mutate(item.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.625rem 0.5rem',
+                      borderBottom: i < totalCount - 1 ? '1px solid #f3f4f6' : 'none',
+                      cursor: 'pointer',
+                      opacity: item.is_checked ? 0.5 : 1,
+                      transition: 'opacity 0.15s',
+                    }}
+                  >
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: '2px solid',
+                      borderColor: item.is_checked ? '#16a34a' : '#d1d5db',
+                      background: item.is_checked ? '#16a34a' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      transition: 'all 0.15s',
+                    }}>
+                      {item.is_checked && <span style={{ color: 'white', fontSize: '0.75rem' }}>✓</span>}
+                    </div>
+                    <span style={{ flex: 1, textTransform: 'capitalize', textDecoration: item.is_checked ? 'line-through' : 'none' }}>
+                      {item.ingredient_name}
+                    </span>
+                    <span style={{ fontWeight: 500, color: '#374151' }}>
+                      {item.total_quantity} {item.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {totalCount > 0 && (
+            <div className="no-print" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => { if (confirm('¿Eliminar la lista de compras?')) deleteMutation.mutate() }} className="btn btn-danger">
+                Eliminar lista
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

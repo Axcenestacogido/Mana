@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, ShoppingCart } from 'lucide-react'
+import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { getMenus, createMenu, setMenuEntry, generateMenu } from '../api/menu'
+import { getMenus, createMenu, setMenuEntry, generateMenu, shareMenu, revokeShare } from '../api/menu'
 import { getRecipes } from '../api/recipes'
 import type { WeeklyMenu, Recipe } from '../types'
 
@@ -18,6 +18,8 @@ export default function WeeklyMenuPage() {
   const qc = useQueryClient()
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null)
   const [dragging, setDragging] = useState<Recipe | null>(null)
+  const [shareToken, setShareToken] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const { data: menus = [] } = useQuery({ queryKey: ['menus'], queryFn: getMenus })
   const { data: recipes = [] } = useQuery({ queryKey: ['recipes'], queryFn: () => getRecipes() })
@@ -44,21 +46,38 @@ export default function WeeklyMenuPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['menus'] }),
   })
 
+  const shareMutation = useMutation({
+    mutationFn: () => shareMenu(activeMenu!.id),
+    onSuccess: (data) => setShareToken(data.token),
+  })
+
+  const revokeMutation = useMutation({
+    mutationFn: () => revokeShare(activeMenu!.id),
+    onSuccess: () => setShareToken(null),
+  })
+
   const getEntry = (menu: WeeklyMenu, day: number, meal: string) =>
     menu.entries.find(e => e.day_of_week === day && e.meal_type === meal)
 
   const handleDrop = (day: number, meal: string) => {
-    if (dragging && activeMenu) {
-      setEntryMutation.mutate({ day, meal, recipeId: dragging.id })
-    }
+    if (dragging && activeMenu) setEntryMutation.mutate({ day, meal, recipeId: dragging.id })
     setDragging(null)
+  }
+
+  const shareUrl = shareToken ? `${window.location.origin}/compartido/${shareToken}` : null
+
+  const copyShareUrl = () => {
+    if (!shareUrl) return
+    navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700 }}>Menú semanal</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {activeMenu && (
             <>
               <Link to={`/compra/${activeMenu.id}`}>
@@ -70,6 +89,10 @@ export default function WeeklyMenuPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
                 <RefreshCw size={16} /> {generateMutation.isPending ? 'Generando...' : 'Auto-generar'}
               </button>
+              <button onClick={() => shareMutation.mutate()} disabled={shareMutation.isPending}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: '1px solid #ddd', borderRadius: 8, background: 'white' }}>
+                <Share2 size={16} /> Compartir
+              </button>
             </>
           )}
           <button onClick={() => createMutation.mutate()}
@@ -79,14 +102,29 @@ export default function WeeklyMenuPage() {
         </div>
       </div>
 
+      {shareUrl && (
+        <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Share2 size={16} style={{ color: '#2e7d32', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: '#1b5e20', flex: 1, wordBreak: 'break-all' }}>{shareUrl}</span>
+          <button onClick={copyShareUrl}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: '#2e7d32', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+            {copied ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
+          </button>
+          <button onClick={() => revokeMutation.mutate()}
+            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: '#c62828', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+            <X size={14} /> Revocar
+          </button>
+        </div>
+      )}
+
       {menus.length > 1 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           {menus.map(m => (
             <button key={m.id} onClick={() => setActiveMenuId(m.id)}
               style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid', fontSize: 13,
-                background: (activeMenu?.id === m.id) ? '#b5451b' : 'white',
-                color: (activeMenu?.id === m.id) ? 'white' : '#666',
-                borderColor: (activeMenu?.id === m.id) ? '#b5451b' : '#ddd' }}>
+                background: activeMenu?.id === m.id ? '#b5451b' : 'white',
+                color: activeMenu?.id === m.id ? 'white' : '#666',
+                borderColor: activeMenu?.id === m.id ? '#b5451b' : '#ddd' }}>
               {m.name ?? m.week_start_date}
             </button>
           ))}
@@ -104,17 +142,13 @@ export default function WeeklyMenuPage() {
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => handleDrop(di, meal)}
                   onClick={() => entry?.recipe && setEntryMutation.mutate({ day: di, meal, recipeId: undefined })}
-                  style={{
-                    minHeight: 70, border: '2px dashed #e0d8d0', borderRadius: 8, padding: 6,
-                    marginBottom: 6, background: entry?.recipe ? '#fef3ee' : 'white', cursor: 'pointer',
-                    transition: 'background 0.1s',
-                  }}>
+                  style={{ minHeight: 70, border: '2px dashed #e0d8d0', borderRadius: 8, padding: 6, marginBottom: 6,
+                    background: entry?.recipe ? '#fef3ee' : 'white', cursor: 'pointer' }}>
                   <div style={{ fontSize: 10, color: '#999', marginBottom: 4, textTransform: 'uppercase' }}>{meal}</div>
-                  {entry?.recipe ? (
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#b5451b', lineHeight: 1.3 }}>{entry.recipe.name}</div>
-                  ) : (
-                    <div style={{ fontSize: 11, color: '#ccc' }}>Arrastra aquí</div>
-                  )}
+                  {entry?.recipe
+                    ? <div style={{ fontSize: 12, fontWeight: 600, color: '#b5451b', lineHeight: 1.3 }}>{entry.recipe.name}</div>
+                    : <div style={{ fontSize: 11, color: '#ccc' }}>Arrastra aquí</div>
+                  }
                 </div>
               )
             })}
@@ -123,7 +157,7 @@ export default function WeeklyMenuPage() {
       </div>
 
       <div style={{ marginTop: 32 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Recetas disponibles</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Recetas disponibles</h2>
         <p style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>Arrastra una receta al tablero para asignarla</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {recipes.map(r => (

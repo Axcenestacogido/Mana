@@ -22,3 +22,12 @@ export const generateMenu = (menuId: number, rules?: Record<string, string>) =>
 
 export const deleteMenu = (id: number) =>
   client.delete(`/menu/${id}`)
+
+export const shareMenu = (id: number) =>
+  client.post<{ token: string }>(`/menu/${id}/share`).then(r => r.data)
+
+export const revokeShare = (id: number) =>
+  client.delete(`/menu/${id}/share`).then(r => r.data)
+
+export const getSharedMenu = (token: string) =>
+  client.get<WeeklyMenu>(`/menu/shared/${token}`).then(r => r.data)

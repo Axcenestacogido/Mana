@@ -1,93 +1,164 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Clock, Users, Edit, Trash2, ChefHat } from 'lucide-react'
 import { getRecipe, deleteRecipe } from '../api/recipes'
+import { createRecipeVariation } from '../api/ai'
+import { createRecipe } from '../api/recipes'
+import PortionScaler from '../components/PortionScaler'
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const qc = useQueryClient()
-  const [servings, setServings] = useState<number | null>(null)
+  const queryClient = useQueryClient()
+  const [showVariationModal, setShowVariationModal] = useState(false)
+  const [variationRequest, setVariationRequest] = useState('')
+  const [variationLoading, setVariationLoading] = useState(false)
+  const [variationError, setVariationError] = useState('')
 
-  const { data: recipe, isLoading } = useQuery({
+  const { data: recipe, isLoading, error } = useQuery({
     queryKey: ['recipe', id],
-    queryFn: () => getRecipe(Number(id)),
+    queryFn: () => getRecipe(parseInt(id!)),
+    enabled: !!id,
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteRecipe(Number(id)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['recipes'] }); navigate('/') },
+    mutationFn: () => deleteRecipe(parseInt(id!)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      navigate('/')
+    },
   })
 
-  if (isLoading) return <div style={{ padding: 24 }}>Cargando...</div>
-  if (!recipe) return <div style={{ padding: 24 }}>Receta no encontrada</div>
+  const handleDelete = () => {
+    if (confirm('¿Eliminar esta receta? Esta acción no se puede deshacer.')) {
+      deleteMutation.mutate()
+    }
+  }
 
-  const scale = servings ? servings / recipe.servings : 1
-  const displayServings = servings ?? recipe.servings
+  const handleCreateVariation = async () => {
+    if (!recipe || !variationRequest.trim()) return
+    setVariationLoading(true)
+    setVariationError('')
+    try {
+      const variation = await createRecipeVariation({ recipe_id: recipe.id, variation_request: variationRequest })
+      const saved = await createRecipe({ ...variation, ingredients: variation.ingredients || [] })
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      setShowVariationModal(false)
+      navigate(`/recipes/${saved.id}`)
+    } catch (e: any) {
+      setVariationError(e?.response?.data?.detail || 'Error al crear variación')
+    } finally {
+      setVariationLoading(false)
+    }
+  }
+
+  if (isLoading) return <div className="loading">Cargando...</div>
+  if (error || !recipe) return <div className="error-msg">Receta no encontrada</div>
+
+  const mealBadge = recipe.meal_type === 'comida'
+    ? { label: 'Comida', style: { background: '#dcfce7', color: '#15803d' } }
+    : { label: 'Cena', style: { background: '#dbeafe', color: '#1d4ed8' } }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700 }}>{recipe.name}</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link to={`/recetas/${id}/editar`}>
-            <button style={{ background: '#f5f5f5', border: 'none', borderRadius: 8, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Edit size={16} /> Editar
+    <div style={{ maxWidth: '800px' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        <button onClick={() => navigate('/')} className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
+          ← Volver
+        </button>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>{recipe.name}</h1>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="badge" style={mealBadge.style}>{mealBadge.label}</span>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>⏱ {recipe.prep_time_minutes} min</span>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>👥 {recipe.servings} porciones</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <Link to={`/recipes/${recipe.id}/cook`} className="btn btn-primary">
+              👨‍🍳 Modo Cocina
+            </Link>
+            <Link to={`/recipes/${recipe.id}/edit`} className="btn btn-secondary">
+              ✏️ Editar
+            </Link>
+            <button onClick={() => setShowVariationModal(true)} className="btn btn-secondary">
+              ✨ Variación IA
             </button>
-          </Link>
-          <Link to={`/recetas/${id}/cocinar`}>
-            <button style={{ background: '#b5451b', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ChefHat size={16} /> Cocinar
+            <button onClick={handleDelete} className="btn btn-danger" disabled={deleteMutation.isPending}>
+              🗑 Eliminar
             </button>
-          </Link>
-          <button onClick={() => { if (confirm('¿Eliminar receta?')) deleteMutation.mutate() }}
-            style={{ background: '#fee', border: 'none', borderRadius: 8, padding: '8px 14px', color: '#c00' }}>
-            <Trash2 size={16} />
-          </button>
+          </div>
         </div>
+
+        {recipe.category.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            {recipe.category.map(cat => (
+              <span key={cat} className="badge badge-blue">{cat}</span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {recipe.photo_url && (
-        <img src={recipe.photo_url} alt={recipe.name} style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 12, marginBottom: 24 }} />
-      )}
-
-      <div style={{ display: 'flex', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Clock size={16} /> {recipe.prep_time_minutes} minutos</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Users size={16} />
-          <button onClick={() => setServings(Math.max(1, displayServings - 1))} style={{ border: 'none', background: '#eee', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}>-</button>
-          <span style={{ margin: '0 6px', fontWeight: 600 }}>{displayServings} porciones</span>
-          <button onClick={() => setServings(displayServings + 1)} style={{ border: 'none', background: '#eee', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}>+</button>
-        </span>
-        {recipe.categories.map(c => (
-          <span key={c} style={{ background: '#fef3ee', color: '#b5451b', borderRadius: 99, padding: '2px 10px', fontSize: 13 }}>{c}</span>
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 32 }}>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Ingredientes</h2>
-          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {recipe.ingredients.map((ing, i) => (
-              <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
-                <span>{ing.name}</span>
-                <span style={{ color: '#666' }}>
-                  {ing.quantity ? `${Math.round(ing.quantity * scale * 10) / 10} ${ing.unit ?? ''}` : ''}
-                </span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+        <div className="card">
+          <h2 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '1.1rem' }}>Ingredientes</h2>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            {recipe.ingredients.map(ing => (
+              <li key={ing.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', padding: '0.25rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                <span style={{ textTransform: 'capitalize' }}>{ing.ingredient_name}</span>
+                <span style={{ fontWeight: 500 }}>{ing.quantity} {ing.unit}</span>
               </li>
             ))}
+            {recipe.ingredients.length === 0 && (
+              <li style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Sin ingredientes registrados</li>
+            )}
           </ul>
         </div>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Preparación</h2>
-          <ol style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        <PortionScaler ingredients={recipe.ingredients} originalServings={recipe.servings} />
+      </div>
+
+      {recipe.steps.length > 0 && (
+        <div className="card">
+          <h2 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '1.1rem' }}>Preparación</h2>
+          <ol style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {recipe.steps.map((step, i) => (
-              <li key={i} style={{ lineHeight: 1.6 }}>{step}</li>
+              <li key={i} style={{ fontSize: '0.9rem', lineHeight: 1.6 }}>{step}</li>
             ))}
           </ol>
-          {recipe.notes && <p style={{ marginTop: 16, padding: 12, background: '#fef3ee', borderRadius: 8, color: '#666' }}>{recipe.notes}</p>}
         </div>
-      </div>
+      )}
+
+      {showVariationModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px' }}>
+            <h2 style={{ fontWeight: 600, marginBottom: '1rem' }}>Crear variación con IA</h2>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+              Describe cómo quieres modificar la receta "{recipe.name}"
+            </p>
+            <textarea
+              value={variationRequest}
+              onChange={e => setVariationRequest(e.target.value)}
+              placeholder="Ej: Versión vegetariana, sin gluten, más picante..."
+              className="form-input"
+              rows={3}
+              style={{ width: '100%', resize: 'vertical', marginBottom: '0.75rem' }}
+            />
+            {variationError && <div className="error-msg" style={{ marginBottom: '0.75rem' }}>{variationError}</div>}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowVariationModal(false)} className="btn btn-secondary" disabled={variationLoading}>
+                Cancelar
+              </button>
+              <button onClick={handleCreateVariation} className="btn btn-primary" disabled={variationLoading || !variationRequest.trim()}>
+                {variationLoading ? 'Generando...' : '✨ Crear variación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
