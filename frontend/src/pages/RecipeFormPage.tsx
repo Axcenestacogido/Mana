@@ -125,7 +125,7 @@ export default function RecipeFormPage() {
               className="form-input" placeholder="Nombre de la receta" style={inputStyle} required />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
+          <div className="form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
             <div className="form-group">
               <label className="form-label">Tipo de comida</label>
               <select value={form.meal_type} onChange={e => setForm(f => ({ ...f, meal_type: e.target.value }))} className="form-input">
@@ -176,7 +176,7 @@ export default function RecipeFormPage() {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {form.ingredients.map((ing, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 32px', gap: 'var(--space-2)', alignItems: 'center' }}>
+              <div key={i} className="ingredient-row" style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 32px', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input type="text" value={ing.ingredient_name} onChange={e => updateIngredient(i, 'ingredient_name', e.target.value)}
                   className="form-input" placeholder="Ingrediente" />
                 <input type="number" value={ing.quantity} onChange={e => updateIngredient(i, 'quantity', parseFloat(e.target.value) || 0)}
