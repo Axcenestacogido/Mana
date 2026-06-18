@@ -209,6 +209,89 @@ input, select, textarea { font-family: inherit; }
   border-top: 1px solid var(--border-subtle);
 }
 
+/* ── Mobile header & responsive ──────────────────────────────────── */
+.mobile-header {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+.sidebar-close-btn {
+  display: none;
+  margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform var(--dur-normal) var(--ease-out);
+    z-index: 50;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 24, 19, 0.4);
+    z-index: 49;
+    backdrop-filter: blur(2px);
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+  }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-4);
+    height: 56px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .mobile-back-btn {
+    color: var(--text-muted);
+  }
+
+  .app-main {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app-content {
+    padding: var(--space-4);
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .grid-recipes {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
 /* ── Top bar ────────────────────────────────────────────────────── */
 .topbar {
   height: 60px;

@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { getMenus, createMenu, setMenuEntry, generateMenu, shareMenu, revokeShare } from '../api/menu'
+import { getMenus, getMenu, createMenu, setMenuEntry, generateMenu, shareMenu, revokeShare } from '../api/menu'
 import { getRecipes } from '../api/recipes'
-import type { WeeklyMenu, Recipe } from '../types'
+import type { Recipe } from '../types'
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MEAL_SLOTS = ['comida', 'cena']
@@ -12,10 +12,12 @@ const MEAL_SLOTS = ['comida', 'cena']
 const MEAL_LABEL: Record<string, string> = { comida: 'Comida', cena: 'Cena' }
 const MEAL_BADGE: Record<string, string> = { comida: 'badge-primary', cena: 'badge-info' }
 
-function getMonday(d = new Date()) {
+function getMonday() {
+  const d = new Date()
   const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  return new Date(d.setDate(diff))
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return d
 }
 
 export default function WeeklyMenuPage() {
@@ -24,11 +26,18 @@ export default function WeeklyMenuPage() {
   const [dragging, setDragging] = useState<Recipe | null>(null)
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const { data: menus = [] } = useQuery({ queryKey: ['menus'], queryFn: getMenus })
   const { data: recipes = [] } = useQuery({ queryKey: ['recipes'], queryFn: () => getRecipes() })
 
-  const activeMenu = menus.find(m => m.id === activeMenuId) ?? menus[0] ?? null
+  const resolvedId = activeMenuId ?? menus[0]?.id ?? null
+
+  const { data: activeMenu } = useQuery({
+    queryKey: ['menu', resolvedId],
+    queryFn: () => getMenu(resolvedId!),
+    enabled: resolvedId !== null,
+  })
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -36,18 +45,27 @@ export default function WeeklyMenuPage() {
       const dateStr = monday.toISOString().split('T')[0]
       return createMenu({ week_start_date: dateStr, name: `Semana del ${dateStr}` })
     },
-    onSuccess: (m) => { qc.invalidateQueries({ queryKey: ['menus'] }); setActiveMenuId(m.id) },
+    onSuccess: (m) => {
+      setCreateError(null)
+      qc.invalidateQueries({ queryKey: ['menus'] })
+      qc.invalidateQueries({ queryKey: ['menu', m.id] })
+      setActiveMenuId(m.id)
+    },
+    onError: (e: any) => setCreateError(e?.response?.data?.detail || 'Error al crear el menú'),
   })
 
   const generateMutation = useMutation({
     mutationFn: () => generateMenu(activeMenu!.id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['menus'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['menus'] })
+      qc.invalidateQueries({ queryKey: ['menu', activeMenu!.id] })
+    },
   })
 
   const setEntryMutation = useMutation({
     mutationFn: ({ day, meal, recipeId }: { day: number; meal: string; recipeId?: number }) =>
       setMenuEntry(activeMenu!.id, day, meal, recipeId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['menus'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['menu', activeMenu!.id] }),
   })
 
   const shareMutation = useMutation({
@@ -60,12 +78,23 @@ export default function WeeklyMenuPage() {
     onSuccess: () => setShareToken(null),
   })
 
-  const getEntry = (menu: WeeklyMenu, day: number, meal: string) =>
-    menu.entries.find(e => e.day_of_week === day && e.meal_type === meal)
+  const getEntry = (day: number, meal: string) =>
+    activeMenu?.entries?.find(e => e.day_of_week === day && e.meal_type === meal)
 
   const handleDrop = (day: number, meal: string) => {
     if (dragging && activeMenu) setEntryMutation.mutate({ day, meal, recipeId: dragging.id })
     setDragging(null)
+  }
+
+  const handleTapAssign = (day: number, meal: string) => {
+    if (!activeMenu) return
+    const entry = getEntry(day, meal)
+    if (entry?.recipe) {
+      setEntryMutation.mutate({ day, meal, recipeId: undefined })
+    } else if (dragging) {
+      setEntryMutation.mutate({ day, meal, recipeId: dragging.id })
+      setDragging(null)
+    }
   }
 
   const shareUrl = shareToken ? `${window.location.origin}/compartido/${shareToken}` : null
@@ -108,11 +137,15 @@ export default function WeeklyMenuPage() {
               </button>
             </>
           )}
-          <button onClick={() => createMutation.mutate()} className="btn btn-primary btn-md">
-            <Plus size={15} /> Nuevo menú
+          <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="btn btn-primary btn-md">
+            <Plus size={15} /> {createMutation.isPending ? 'Creando…' : 'Nuevo menú'}
           </button>
         </div>
       </div>
+
+      {createError && (
+        <div className="error-msg" style={{ marginBottom: 'var(--space-4)' }}>{createError}</div>
+      )}
 
       {/* Share banner */}
       {shareUrl && (
@@ -169,13 +202,13 @@ export default function WeeklyMenuPage() {
                 {day}
               </div>
               {MEAL_SLOTS.map(meal => {
-                const entry = activeMenu ? getEntry(activeMenu, di, meal) : null
+                const entry = getEntry(di, meal)
                 return (
                   <div
                     key={meal}
                     onDragOver={e => e.preventDefault()}
                     onDrop={() => handleDrop(di, meal)}
-                    onClick={() => entry?.recipe && setEntryMutation.mutate({ day: di, meal, recipeId: undefined })}
+                    onClick={() => handleTapAssign(di, meal)}
                     style={{
                       minHeight: 72, borderRadius: 'var(--radius-md)',
                       padding: 'var(--space-3)', marginBottom: 'var(--space-2)',
