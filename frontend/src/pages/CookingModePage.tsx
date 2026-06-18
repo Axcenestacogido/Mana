@@ -46,7 +46,7 @@ export default function CookingModePage() {
     return (
       <div style={{ textAlign: 'center', padding: '3rem' }}>
         <p style={{ marginBottom: '1rem', color: '#6b7280' }}>Esta receta no tiene pasos de preparación</p>
-        <button onClick={() => navigate(`/recipes/${id}`)} className="btn btn-secondary">Volver</button>
+        <button onClick={() => navigate(`/recetas/${id}`)} className="btn btn-secondary">Volver</button>
       </div>
     )
   }
@@ -61,7 +61,7 @@ export default function CookingModePage() {
     <div style={{ minHeight: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', maxWidth: '900px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px solid #e5e7eb', marginBottom: '1rem' }}>
-        <button onClick={() => navigate(`/recipes/${id}`)} className="btn btn-secondary">
+        <button onClick={() => navigate(`/recetas/${id}`)} className="btn btn-secondary">
           ← Volver
         </button>
         <div style={{ textAlign: 'center' }}>
@@ -119,7 +119,7 @@ export default function CookingModePage() {
 
         {isLast ? (
           <button
-            onClick={() => navigate(`/recipes/${id}`)}
+            onClick={() => navigate(`/recetas/${id}`)}
             className="btn btn-primary"
             style={{ padding: '0.75rem 1.5rem', fontSize: '1rem' }}
           >

@@ -3,8 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 const navLinks = [
   { to: '/', label: 'Recetas' },
   { to: '/menu', label: 'Menú Semanal' },
-  { to: '/shopping', label: 'Lista de Compras' },
-  { to: '/ai', label: 'IA' },
+  { to: '/compra', label: 'Lista de Compras' },
+  { to: '/ia', label: 'IA' },
 ]
 
 export default function Navbar() {

@@ -17,7 +17,7 @@ export default function RecipeCard({ recipe }: Props) {
   return (
     <div
       className="card"
-      onClick={() => navigate(`/recipes/${recipe.id}`)}
+      onClick={() => navigate(`/recetas/${recipe.id}`)}
       style={{ cursor: 'pointer', transition: 'box-shadow 0.15s', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)')}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = '')}
