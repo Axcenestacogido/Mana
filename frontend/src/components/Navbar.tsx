@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat, X } from 'lucide-react'
+import { BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat } from 'lucide-react'
 
 const navLinks = [
   { to: '/', label: 'Recetas', Icon: BookOpen, exact: true },
@@ -8,16 +8,11 @@ const navLinks = [
   { to: '/ia', label: 'Asistente IA', Icon: Sparkles },
 ]
 
-interface SidebarProps {
-  mobileOpen?: boolean
-  onClose?: () => void
-}
-
-export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
+export default function Sidebar() {
   const { pathname } = useLocation()
 
   return (
-    <aside className={`app-sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+    <aside className="app-sidebar">
       <div className="sidebar-logo">
         <div className="logo-mark">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -26,18 +21,13 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           </svg>
         </div>
         <span className="logo-wordmark">Maná</span>
-        {onClose && (
-          <button onClick={onClose} className="btn btn-ghost btn-sm sidebar-close-btn">
-            <X size={16} />
-          </button>
-        )}
       </div>
 
       <span className="nav-section-label">Principal</span>
       {navLinks.map(({ to, label, Icon, exact }) => {
         const isActive = exact ? pathname === to : pathname.startsWith(to)
         return (
-          <Link key={to} to={to} className={`nav-item${isActive ? ' active' : ''}`} onClick={onClose}>
+          <Link key={to} to={to} className={`nav-item${isActive ? ' active' : ''}`}>
             <Icon size={16} strokeWidth={2} />
             {label}
           </Link>
@@ -48,10 +38,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
       <Link
         to="/"
         className="nav-item"
-        onClick={e => {
-          e.preventDefault()
-          // Se navega desde el detalle de receta
-        }}
+        onClick={e => { e.preventDefault() }}
         style={{ opacity: 0.5, cursor: 'default', pointerEvents: 'none' }}
       >
         <ChefHat size={16} strokeWidth={2} />

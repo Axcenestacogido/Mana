@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { Menu, X, ArrowLeft } from 'lucide-react'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BookOpen, Calendar, ShoppingBag, Sparkles } from 'lucide-react'
 import Sidebar from './components/Navbar'
 import RecipesPage from './pages/RecipesPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
@@ -11,30 +10,35 @@ import AIPage from './pages/AIPage'
 import CookingModePage from './pages/CookingModePage'
 import SharedMenuPage from './pages/SharedMenuPage'
 
-function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
-  const navigate = useNavigate()
+const bottomNavLinks = [
+  { to: '/', label: 'Recetas', Icon: BookOpen, exact: true },
+  { to: '/menu', label: 'Menú semanal', Icon: Calendar },
+  { to: '/compra', label: 'Lista de compra', Icon: ShoppingBag },
+  { to: '/ia', label: 'Asistente IA', Icon: Sparkles },
+]
+
+function BottomNav() {
+  const { pathname } = useLocation()
   return (
-    <header className="mobile-header">
-      <button className="btn btn-ghost btn-md mobile-back-btn" onClick={() => navigate(-1)}>
-        <ArrowLeft size={18} />
-      </button>
-      <span className="logo-wordmark" style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)' }}>Maná</span>
-      <button className="btn btn-ghost btn-md" onClick={onOpenSidebar}>
-        <Menu size={20} />
-      </button>
-    </header>
+    <nav className="bottom-nav">
+      {bottomNavLinks.map(({ to, label, Icon, exact }) => {
+        const isActive = exact ? pathname === to : pathname.startsWith(to)
+        return (
+          <Link key={to} to={to} className={`bottom-nav-item${isActive ? ' active' : ''}`}>
+            <Icon size={20} strokeWidth={2} />
+            <span>{label}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
 
 function ShellLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   return (
     <div className="app-shell">
-      {/* Mobile overlay */}
-      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
-      <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar />
       <div className="app-main">
-        <MobileHeader onOpenSidebar={() => setSidebarOpen(true)} />
         <div className="app-content">
           <Routes>
             <Route path="/" element={<RecipesPage />} />
@@ -48,6 +52,7 @@ function ShellLayout() {
           </Routes>
         </div>
       </div>
+      <BottomNav />
     </div>
   )
 }
