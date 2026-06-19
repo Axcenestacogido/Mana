@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat } from 'lucide-react'
+import { Home, BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat, Settings } from 'lucide-react'
 
 const navLinks = [
   { to: '/', label: 'Inicio', Icon: Home, exact: true },
@@ -44,6 +44,11 @@ export default function Sidebar() {
       >
         <ChefHat size={16} strokeWidth={2} />
         Modo cocina
+      </Link>
+
+      <Link to="/ajustes" className={`nav-item${pathname === '/ajustes' ? ' active' : ''}`}>
+        <Settings size={16} strokeWidth={2} />
+        Ajustes
       </Link>
 
       <div className="sidebar-footer">

@@ -47,6 +47,7 @@ def menu_to_response(menu: WeeklyMenu) -> dict:
         "id": menu.id,
         "week_start_date": menu.week_start_date,
         "name": menu.name,
+        "color": menu.color,
         "created_at": menu.created_at,
         "entries": entries,
     }
@@ -54,7 +55,7 @@ def menu_to_response(menu: WeeklyMenu) -> dict:
 @router.get("")
 def list_menus(db: Session = Depends(get_db)):
     menus = db.query(WeeklyMenu).order_by(WeeklyMenu.created_at.desc()).all()
-    return [{"id": m.id, "week_start_date": m.week_start_date, "name": m.name, "created_at": m.created_at} for m in menus]
+    return [{"id": m.id, "week_start_date": m.week_start_date, "name": m.name, "color": m.color, "created_at": m.created_at} for m in menus]
 
 @router.get("/current")
 def get_current_menu(db: Session = Depends(get_db)):
@@ -144,9 +145,11 @@ def update_menu(menu_id: int, data: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Menú no encontrado")
     if "name" in data:
         menu.name = data["name"]
+    if "color" in data:
+        menu.color = data["color"]
     db.commit()
     db.refresh(menu)
-    return {"id": menu.id, "week_start_date": menu.week_start_date, "name": menu.name, "created_at": menu.created_at}
+    return {"id": menu.id, "week_start_date": menu.week_start_date, "name": menu.name, "color": menu.color, "created_at": menu.created_at}
 
 @router.delete("/{menu_id}")
 def delete_menu(menu_id: int, db: Session = Depends(get_db)):

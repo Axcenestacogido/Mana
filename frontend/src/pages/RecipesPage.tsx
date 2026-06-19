@@ -7,9 +7,9 @@ import RecipeCard from '../components/RecipeCard'
 
 const MEAL_FILTERS = [
   { value: '', label: 'Todas' },
-  { value: 'desayuno', label: 'Desayuno' },
   { value: 'comida', label: 'Comida' },
   { value: 'cena', label: 'Cena' },
+  { value: 'ambas', label: 'Ambas' },
 ]
 
 export default function RecipesPage() {

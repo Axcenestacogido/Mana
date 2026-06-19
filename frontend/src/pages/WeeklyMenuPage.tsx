@@ -12,6 +12,13 @@ const MEAL_SLOTS = ['comida', 'cena']
 const MEAL_LABEL: Record<string, string> = { comida: 'Comida', cena: 'Cena' }
 const MEAL_BADGE: Record<string, string> = { comida: 'badge-primary', cena: 'badge-info' }
 
+function getSlotFromPoint(x: number, y: number): { day: number; meal: string } | null {
+  const el = document.elementFromPoint(x, y)
+  const slot = el?.closest('[data-day][data-meal]') as HTMLElement | null
+  if (!slot) return null
+  return { day: parseInt(slot.dataset.day!), meal: slot.dataset.meal! }
+}
+
 function getMonday() {
   const d = new Date()
   const day = d.getDay()
@@ -24,12 +31,26 @@ export default function WeeklyMenuPage() {
   const qc = useQueryClient()
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null)
   const [dragging, setDragging] = useState<Recipe | null>(null)
+  const [touchHighlight, setTouchHighlight] = useState<{ day: number; meal: string } | null>(null)
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
+  const [editColor, setEditColor] = useState<string>('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const MENU_COLORS = [
+    { value: '', label: 'Sin color' },
+    { value: '#e74c3c', label: 'Rojo' },
+    { value: '#e67e22', label: 'Naranja' },
+    { value: '#f1c40f', label: 'Amarillo' },
+    { value: '#27ae60', label: 'Verde' },
+    { value: '#3498db', label: 'Azul' },
+    { value: '#9b59b6', label: 'Morado' },
+    { value: '#1abc9c', label: 'Turquesa' },
+    { value: '#e91e8c', label: 'Rosa' },
+  ]
 
   const { data: menus = [] } = useQuery({ queryKey: ['menus'], queryFn: getMenus })
   const { data: recipes = [] } = useQuery({ queryKey: ['recipes'], queryFn: () => getRecipes() })
@@ -43,7 +64,10 @@ export default function WeeklyMenuPage() {
   })
 
   useEffect(() => {
-    if (activeMenu) setEditName(activeMenu.name ?? activeMenu.week_start_date)
+    if (activeMenu) {
+      setEditName(activeMenu.name ?? activeMenu.week_start_date)
+      setEditColor(activeMenu.color ?? '')
+    }
   }, [activeMenu])
 
   const createMutation = useMutation({
@@ -86,7 +110,8 @@ export default function WeeklyMenuPage() {
   })
 
   const renameMutation = useMutation({
-    mutationFn: (name: string) => updateMenu(resolvedId!, { name }),
+    mutationFn: ({ name, color }: { name: string; color: string }) =>
+      updateMenu(resolvedId!, { name, color: color || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['menus'] })
       qc.invalidateQueries({ queryKey: ['menu', resolvedId] })
@@ -132,7 +157,12 @@ export default function WeeklyMenuPage() {
         <div>
           <h1 className="page-title">Menú semanal</h1>
           {activeMenu && (
-            <p className="page-sub">{activeMenu.name ?? activeMenu.week_start_date}</p>
+            <p className="page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {activeMenu.color && (
+                <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: activeMenu.color, flexShrink: 0 }} />
+              )}
+              {activeMenu.name ?? activeMenu.week_start_date}
+            </p>
           )}
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
@@ -202,7 +232,15 @@ export default function WeeklyMenuPage() {
               key={m.id}
               onClick={() => setActiveMenuId(m.id)}
               className={`filter-chip${activeMenu?.id === m.id ? ' active' : ''}`}
+              style={m.color ? { borderLeft: `3px solid ${m.color}` } : undefined}
             >
+              {m.color && (
+                <span style={{
+                  display: 'inline-block', width: 8, height: 8,
+                  borderRadius: '50%', background: m.color,
+                  marginRight: 6, flexShrink: 0,
+                }} />
+              )}
               {m.name ?? m.week_start_date}
             </button>
           ))}
@@ -235,6 +273,8 @@ export default function WeeklyMenuPage() {
                 return (
                   <div
                     key={meal}
+                    data-day={di}
+                    data-meal={meal}
                     onDragOver={e => e.preventDefault()}
                     onDrop={() => handleDrop(di, meal)}
                     onClick={() => handleSlotClick(di, meal)}
@@ -242,7 +282,9 @@ export default function WeeklyMenuPage() {
                       minHeight: 72, borderRadius: 'var(--radius-md)',
                       padding: 'var(--space-3)', marginBottom: 'var(--space-2)',
                       border: `1px ${entry?.recipe ? 'solid' : 'dashed'} var(--border-subtle)`,
-                      background: entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)',
+                      background: touchHighlight?.day === di && touchHighlight?.meal === meal
+                        ? 'var(--terracotta-100)'
+                        : entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)',
                       cursor: entry?.recipe ? 'pointer' : 'default',
                       transition: 'background var(--dur-fast)',
                     }}
@@ -294,15 +336,30 @@ export default function WeeklyMenuPage() {
               key={r.id}
               draggable
               onDragStart={() => setDragging(r)}
+              onTouchStart={() => setDragging(r)}
+              onTouchMove={e => {
+                e.preventDefault()
+                const touch = e.touches[0]
+                const slot = getSlotFromPoint(touch.clientX, touch.clientY)
+                setTouchHighlight(slot)
+              }}
+              onTouchEnd={e => {
+                const touch = e.changedTouches[0]
+                const slot = getSlotFromPoint(touch.clientX, touch.clientY)
+                if (slot) handleDrop(slot.day, slot.meal)
+                else setDragging(null)
+                setTouchHighlight(null)
+              }}
               style={{
                 background: 'var(--surface-card)',
                 border: `1px solid var(--border-subtle)`,
-                borderLeft: `3px solid ${r.meal_type === 'comida' ? 'var(--primary)' : 'var(--accent)'}`,
+                borderLeft: `3px solid ${r.meal_type === 'ambas' ? 'var(--sage-400)' : r.meal_type === 'comida' ? 'var(--primary)' : 'var(--accent)'}`,
                 borderRadius: 'var(--radius-md)',
                 padding: '8px 14px',
                 fontSize: 'var(--text-sm)',
                 cursor: 'grab',
                 userSelect: 'none',
+                touchAction: 'none',
                 boxShadow: 'var(--shadow-xs)',
                 transition: 'box-shadow var(--dur-fast)',
                 fontWeight: 'var(--fw-medium)',
@@ -320,21 +377,41 @@ export default function WeeklyMenuPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,24,19,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 'var(--space-4)' }}>
           <div className="card" style={{ width: '100%', maxWidth: 420, borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-xl)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)' }}>Renombrar menú</h2>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)' }}>Editar menú</h2>
               <button onClick={() => setShowEditModal(false)} className="btn btn-ghost btn-sm"><X size={16} /></button>
             </div>
             <input
               type="text"
               value={editName}
               onChange={e => setEditName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && editName.trim()) renameMutation.mutate(editName.trim()) }}
+              onKeyDown={e => { if (e.key === 'Enter' && editName.trim()) renameMutation.mutate({ name: editName.trim(), color: editColor }) }}
               className="form-input"
               style={{ width: '100%', marginBottom: 'var(--space-4)' }}
               autoFocus
             />
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                Color de temporada
+              </label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {MENU_COLORS.map(c => (
+                  <button
+                    key={c.value}
+                    title={c.label}
+                    onClick={() => setEditColor(c.value)}
+                    style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: c.value || 'var(--surface-sunken)',
+                      border: editColor === c.value ? '3px solid var(--text-strong)' : '2px solid var(--border-subtle)',
+                      cursor: 'pointer', flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowEditModal(false)} className="btn btn-secondary btn-md">Cancelar</button>
-              <button onClick={() => editName.trim() && renameMutation.mutate(editName.trim())} disabled={renameMutation.isPending || !editName.trim()} className="btn btn-primary btn-md">
+              <button onClick={() => editName.trim() && renameMutation.mutate({ name: editName.trim(), color: editColor })} disabled={renameMutation.isPending || !editName.trim()} className="btn btn-primary btn-md">
                 <Check size={15} /> Guardar
               </button>
             </div>

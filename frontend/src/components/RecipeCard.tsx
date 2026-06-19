@@ -9,9 +9,9 @@ interface Props {
 }
 
 const MEAL_CONFIG: Record<string, { label: string; badge: string; gradient: string }> = {
-  comida:   { label: 'Comida',   badge: 'badge-primary', gradient: 'linear-gradient(135deg, var(--terracotta-100), var(--terracotta-50))' },
-  cena:     { label: 'Cena',     badge: 'badge-info',    gradient: 'linear-gradient(135deg, var(--blue-100), #eef3f9)' },
-  desayuno: { label: 'Desayuno', badge: 'badge-warning', gradient: 'linear-gradient(135deg, var(--amber-100), #fdf6e8)' },
+  comida: { label: 'Comida', badge: 'badge-primary', gradient: 'linear-gradient(135deg, var(--terracotta-100), var(--terracotta-50))' },
+  cena:   { label: 'Cena',   badge: 'badge-info',    gradient: 'linear-gradient(135deg, var(--blue-100), #eef3f9)' },
+  ambas:  { label: 'Ambas',  badge: 'badge-sage',    gradient: 'linear-gradient(135deg, var(--sage-100), #f0f4ef)' },
 }
 
 export default function RecipeCard({ recipe }: Props) {
