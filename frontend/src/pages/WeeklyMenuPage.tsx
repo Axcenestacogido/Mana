@@ -154,7 +154,11 @@ export default function WeeklyMenuPage() {
 
   return (
     <div onDragEnd={() => setDragging(null)}>
-      <div className="page-header">
+      <div className="page-header" style={activeMenu?.color ? {
+        borderLeft: `4px solid ${activeMenu.color}`,
+        paddingLeft: 'var(--space-4)',
+        marginLeft: 'calc(var(--space-4) * -1)',
+      } : undefined}>
         <div>
           <h1 className="page-title">Menú semanal</h1>
           {activeMenu && (
@@ -257,6 +261,7 @@ export default function WeeklyMenuPage() {
         boxShadow: 'var(--shadow-sm)',
         overflowX: 'auto',
         marginBottom: 'var(--space-8)',
+        borderTop: activeMenu?.color ? `3px solid ${activeMenu.color}` : '1px solid var(--border-subtle)',
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(110px, 1fr))', gap: 'var(--space-3)', minWidth: 700 }}>
           {DAYS.map((day, di) => (
@@ -265,7 +270,9 @@ export default function WeeklyMenuPage() {
                 textAlign: 'center', padding: 'var(--space-2) 0 var(--space-3)',
                 fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)',
                 letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase',
-                color: 'var(--text-muted)',
+                color: activeMenu?.color ?? 'var(--text-muted)',
+                borderBottom: activeMenu?.color ? `2px solid ${activeMenu.color}22` : undefined,
+                marginBottom: activeMenu?.color ? 4 : undefined,
               }}>
                 {day}
               </div>
