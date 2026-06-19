@@ -120,3 +120,6 @@ class AISuggestMenuRequest(BaseModel):
     season: str = ""
     budget: str = ""
     excluded_recipe_ids: List[int] = []
+
+class AIImportFromURLRequest(BaseModel):
+    url: str

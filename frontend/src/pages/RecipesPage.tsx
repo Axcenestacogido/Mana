@@ -16,11 +16,13 @@ export default function RecipesPage() {
   const [search, setSearch] = useState('')
   const [mealType, setMealType] = useState('')
   const [maxPrepTime, setMaxPrepTime] = useState('')
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
 
-  const params: Record<string, string | number> = {}
+  const params: Record<string, string | number | boolean> = {}
   if (search) params.search = search
   if (mealType) params.meal_type = mealType
   if (maxPrepTime) params.max_prep_time = parseInt(maxPrepTime)
+  if (favoritesOnly) params.favorites_only = true
 
   const { data: recipes = [], isLoading, error } = useQuery({
     queryKey: ['recipes', params],
@@ -61,6 +63,12 @@ export default function RecipesPage() {
               {f.label}
             </button>
           ))}
+          <button
+            className={`filter-chip${favoritesOnly ? ' active' : ''}`}
+            onClick={() => setFavoritesOnly(v => !v)}
+          >
+            ♥ Favoritos
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <SlidersHorizontal size={14} color="var(--text-muted)" />

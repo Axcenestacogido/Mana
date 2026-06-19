@@ -43,6 +43,7 @@ def recipe_to_response(recipe: Recipe) -> dict:
         "servings": recipe.servings,
         "steps": steps,
         "photo_url": recipe.photo_url,
+        "is_favorite": recipe.is_favorite,
         "created_at": recipe.created_at,
         "ingredients": ingredients,
     }
@@ -53,6 +54,7 @@ def list_recipes(
     meal_type: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     max_prep_time: Optional[int] = Query(None),
+    favorites_only: Optional[bool] = Query(None),
     db: Session = Depends(get_db)
 ):
     q = db.query(Recipe)
@@ -62,6 +64,8 @@ def list_recipes(
         q = q.filter(Recipe.meal_type == meal_type)
     if max_prep_time:
         q = q.filter(Recipe.prep_time_minutes <= max_prep_time)
+    if favorites_only:
+        q = q.filter(Recipe.is_favorite == True)
     recipes = q.order_by(Recipe.created_at.desc()).all()
     result = [recipe_to_response(r) for r in recipes]
     if category:
@@ -155,3 +159,12 @@ def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     db.delete(recipe)
     db.commit()
     return {"message": "Receta eliminada"}
+
+@router.post("/{recipe_id}/favorite")
+def toggle_favorite(recipe_id: int, db: Session = Depends(get_db)):
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+    recipe.is_favorite = not recipe.is_favorite
+    db.commit()
+    return {"id": recipe.id, "is_favorite": recipe.is_favorite}

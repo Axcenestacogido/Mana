@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Sparkles, ChefHat, Calendar, Camera, Save } from 'lucide-react'
-import { generateFromIngredients, recipeVariation, suggestWeeklyMenu, importFromImage } from '../api/ai'
+import { Sparkles, ChefHat, Calendar, Camera, Save, Link } from 'lucide-react'
+import { generateFromIngredients, recipeVariation, suggestWeeklyMenu, importFromImage, importFromUrl } from '../api/ai'
 import { createRecipe, getRecipes } from '../api/recipes'
 import { getMenus, setMenuEntry } from '../api/menu'
 
@@ -10,6 +10,7 @@ const TABS = [
   { id: 'variation',   label: 'Variación',    Icon: ChefHat },
   { id: 'menu',        label: 'Menú semanal', Icon: Calendar },
   { id: 'photo',       label: 'Importar foto', Icon: Camera },
+  { id: 'url',         label: 'Importar URL',  Icon: Link },
 ] as const
 
 type TabId = typeof TABS[number]['id']
@@ -83,6 +84,13 @@ export default function AIPage() {
   const importMutation = useMutation({
     mutationFn: () => importFromImage(selectedFile!),
     onSuccess: (data) => setImportedRecipe(data),
+  })
+
+  const [urlInput, setUrlInput] = useState('')
+  const [urlRecipe, setUrlRecipe] = useState<Record<string, unknown> | null>(null)
+  const urlMutation = useMutation({
+    mutationFn: () => importFromUrl(urlInput.trim()),
+    onSuccess: (data) => setUrlRecipe(data),
   })
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,6 +324,43 @@ export default function AIPage() {
                 Receta detectada correctamente
               </div>
               <RecipePreview recipe={importedRecipe} onSave={() => saveRecipeMutation.mutate(importedRecipe)} />
+            </>
+          )}
+        </div>
+      )}
+      {tab === 'url' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 'var(--leading-relaxed)' }}>
+            Pega la URL de cualquier página web con una receta. La IA extraerá automáticamente los ingredientes, pasos y tiempos.
+          </p>
+          <div className="form-group">
+            <label className="form-label">URL de la receta</label>
+            <input
+              type="url"
+              value={urlInput}
+              onChange={e => { setUrlInput(e.target.value); setUrlRecipe(null) }}
+              className="form-input"
+              placeholder="https://ejemplo.com/receta-de-paella"
+            />
+          </div>
+          <button
+            onClick={() => urlMutation.mutate()}
+            disabled={!urlInput.trim() || urlMutation.isPending}
+            className="btn btn-primary btn-md"
+            style={{ alignSelf: 'flex-start' }}
+          >
+            <Link size={15} /> {urlMutation.isPending ? 'Analizando página…' : 'Extraer receta'}
+          </button>
+          {urlMutation.isError && (
+            <div className="error-msg">No se pudo extraer ninguna receta. Comprueba que la URL es correcta y la página es accesible.</div>
+          )}
+          {urlRecipe && (
+            <>
+              <div style={{ background: 'var(--success-soft)', border: '1px solid var(--sage-200)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--success-fg)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Receta extraída correctamente
+              </div>
+              <RecipePreview recipe={urlRecipe} onSave={() => saveRecipeMutation.mutate(urlRecipe)} />
             </>
           )}
         </div>
