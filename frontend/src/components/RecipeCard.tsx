@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Clock, Users, Heart } from 'lucide-react'
 import { Recipe } from '../types'
+import { toggleFavorite } from '../api/recipes'
 
 interface Props {
   recipe: Recipe
@@ -14,7 +16,13 @@ const MEAL_CONFIG: Record<string, { label: string; badge: string; gradient: stri
 
 export default function RecipeCard({ recipe }: Props) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const config = MEAL_CONFIG[recipe.meal_type] ?? MEAL_CONFIG.comida
+
+  const favMutation = useMutation({
+    mutationFn: () => toggleFavorite(recipe.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recipes'] }),
+  })
 
   return (
     <div
@@ -29,10 +37,11 @@ export default function RecipeCard({ recipe }: Props) {
         </span>
         <button
           className="recipe-card-fav"
-          onClick={e => e.stopPropagation()}
-          aria-label="Guardar en favoritos"
+          onClick={e => { e.stopPropagation(); favMutation.mutate() }}
+          aria-label={recipe.is_favorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+          style={{ color: recipe.is_favorite ? 'var(--primary)' : undefined }}
         >
-          <Heart size={14} strokeWidth={2} />
+          <Heart size={14} strokeWidth={2} fill={recipe.is_favorite ? 'currentColor' : 'none'} />
         </button>
       </div>
 

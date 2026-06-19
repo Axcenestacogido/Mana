@@ -26,6 +26,7 @@ export interface Recipe {
   servings: number;
   steps: string[];
   photo_url: string | null;
+  is_favorite: boolean;
   created_at: string;
   ingredients: RecipeIngredient[];
 }

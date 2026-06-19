@@ -16,3 +16,6 @@ export const importFromImage = (file: File) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   }).then(r => r.data)
 }
+
+export const importFromUrl = (url: string) =>
+  client.post('/ai/import-from-url', { url }).then(r => r.data)

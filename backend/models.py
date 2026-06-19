@@ -20,6 +20,7 @@ class Recipe(Base):
     servings = Column(Integer, default=4)
     steps = Column(Text, default="[]")
     photo_url = Column(String, nullable=True)
+    is_favorite = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     recipe_ingredients = relationship("RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan")
     menu_entries = relationship("MenuEntry", back_populates="recipe")

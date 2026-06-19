@@ -1,10 +1,13 @@
 import os
 import json
-from fastapi import APIRouter, Depends, HTTPException
+import base64
+import httpx
+from html.parser import HTMLParser
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Recipe
-from schemas import AIGenerateRequest, AIVariationRequest, AISuggestMenuRequest
+from schemas import AIGenerateRequest, AIVariationRequest, AISuggestMenuRequest, AIImportFromURLRequest
 import anthropic
 
 router = APIRouter()
@@ -145,17 +148,16 @@ Presupuesto: {req.budget or 'Moderado'}
 
 Responde ÚNICAMENTE con un JSON válido:
 {{
-  "days": [
-    {{
-      "day_of_week": 0,
-      "day_name": "Lunes",
-      "comida_recipe_id": <id>,
-      "cena_recipe_id": <id>
-    }}
-  ]
+  "menu": [
+    {{"day_of_week": 0, "meal_type": "comida", "recipe_id": <id>}},
+    {{"day_of_week": 0, "meal_type": "cena", "recipe_id": <id>}},
+    {{"day_of_week": 1, "meal_type": "comida", "recipe_id": <id>}},
+    {{"day_of_week": 1, "meal_type": "cena", "recipe_id": <id>}}
+  ],
+  "notes": "Nota breve sobre el menú"
 }}
 
-Incluye los 7 días (0=Lunes a 6=Domingo). Usa solo IDs de las recetas listadas. Evita repetir recetas. No incluyas texto adicional, solo el JSON."""
+Incluye 14 entradas: comida y cena para los 7 días (day_of_week 0=Lunes a 6=Domingo). Usa solo IDs de las recetas listadas. Evita repetir recetas. No incluyas texto adicional, solo el JSON."""
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
@@ -174,11 +176,155 @@ Incluye los 7 días (0=Lunes a 6=Domingo). Usa solo IDs de las recetas listadas.
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"Error al parsear respuesta de IA: {str(e)}")
 
-    recipe_map = {r.id: {"id": r.id, "name": r.name, "meal_type": r.meal_type, "prep_time_minutes": r.prep_time_minutes} for r in available}
-    for day in menu_data.get("days", []):
-        comida_id = day.get("comida_recipe_id")
-        cena_id = day.get("cena_recipe_id")
-        day["comida_recipe"] = recipe_map.get(comida_id)
-        day["cena_recipe"] = recipe_map.get(cena_id)
-
     return menu_data
+
+
+class _HTMLTextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self._parts: list[str] = []
+        self._skip_tags = {"script", "style", "nav", "footer", "header"}
+        self._current_skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self._skip_tags:
+            self._current_skip += 1
+
+    def handle_endtag(self, tag):
+        if tag in self._skip_tags and self._current_skip > 0:
+            self._current_skip -= 1
+
+    def handle_data(self, data):
+        if self._current_skip == 0:
+            stripped = data.strip()
+            if stripped:
+                self._parts.append(stripped)
+
+    def get_text(self) -> str:
+        return " ".join(self._parts)
+
+
+def _extract_recipe_from_text(client, text_content: str, source_hint: str = "") -> dict:
+    prompt = f"""Eres un chef experto. Extrae la receta completa del siguiente texto{' (obtenido de ' + source_hint + ')' if source_hint else ''}.
+
+TEXTO:
+{text_content[:6000]}
+
+Responde ÚNICAMENTE con un JSON válido con esta estructura exacta:
+{{
+  "name": "Nombre de la receta",
+  "meal_type": "comida",
+  "category": ["categoria1"],
+  "prep_time_minutes": 30,
+  "servings": 4,
+  "steps": ["Paso 1: ...", "Paso 2: ..."],
+  "ingredients": [
+    {{"ingredient_name": "nombre", "quantity": 200, "unit": "gramos"}}
+  ]
+}}
+
+Si no encuentras una receta clara en el texto, devuelve {{"error": "No se encontró ninguna receta"}}.
+No incluyas texto adicional, solo el JSON."""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2048,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    text = message.content[0].text.strip()
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0].strip()
+    elif "```" in text:
+        text = text.split("```")[1].split("```")[0].strip()
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Error al parsear respuesta de IA: {str(e)}")
+
+    if "error" in data:
+        raise HTTPException(status_code=422, detail=data["error"])
+
+    return data
+
+
+@router.post("/import-from-url")
+async def import_from_url(req: AIImportFromURLRequest, db: Session = Depends(get_db)):
+    client = get_client()
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as http:
+            response = await http.get(req.url, headers={"User-Agent": "Mozilla/5.0"})
+        response.raise_for_status()
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo acceder a la URL: {str(e)}")
+
+    extractor = _HTMLTextExtractor()
+    extractor.feed(response.text)
+    text_content = extractor.get_text()
+
+    if len(text_content) < 50:
+        raise HTTPException(status_code=422, detail="No se pudo extraer contenido útil de la página")
+
+    return _extract_recipe_from_text(client, text_content, source_hint=req.url)
+
+
+@router.post("/import-from-image")
+async def import_from_image(file: UploadFile = File(...)):
+    client = get_client()
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La imagen no puede superar 10 MB")
+
+    media_type = file.content_type or "image/jpeg"
+    b64 = base64.standard_b64encode(contents).decode("utf-8")
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2048,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": media_type, "data": b64},
+                },
+                {
+                    "type": "text",
+                    "text": """Eres un chef experto. Extrae la receta completa de esta imagen.
+
+Responde ÚNICAMENTE con un JSON válido:
+{
+  "name": "Nombre de la receta",
+  "meal_type": "comida",
+  "category": ["categoria1"],
+  "prep_time_minutes": 30,
+  "servings": 4,
+  "steps": ["Paso 1: ...", "Paso 2: ..."],
+  "ingredients": [
+    {"ingredient_name": "nombre", "quantity": 200, "unit": "gramos"}
+  ]
+}
+
+Si no hay receta reconocible, devuelve {"error": "No se encontró ninguna receta"}.
+Solo el JSON, sin texto adicional."""
+                }
+            ]
+        }]
+    )
+
+    text = message.content[0].text.strip()
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0].strip()
+    elif "```" in text:
+        text = text.split("```")[1].split("```")[0].strip()
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Error al parsear respuesta de IA: {str(e)}")
+
+    if "error" in data:
+        raise HTTPException(status_code=422, detail=data["error"])
+
+    return data

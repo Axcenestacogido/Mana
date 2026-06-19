@@ -1,7 +1,7 @@
 import client from './client';
 import { Recipe, RecipeCreate } from '../types';
 
-export const getRecipes = (params?: Record<string, string | number>) =>
+export const getRecipes = (params?: Record<string, string | number | boolean>) =>
   client.get<Recipe[]>('/recipes', { params }).then(r => r.data);
 
 export const getRecipe = (id: number) =>
@@ -18,3 +18,6 @@ export const deleteRecipe = (id: number) =>
 
 export const searchByIngredients = (ingredients: string) =>
   client.get<Recipe[]>('/recipes/search/by-ingredients', { params: { ingredients } }).then(r => r.data);
+
+export const toggleFavorite = (id: number) =>
+  client.post<Recipe>(`/recipes/${id}/favorite`).then(r => r.data);
