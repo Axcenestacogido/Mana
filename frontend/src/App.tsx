@@ -10,6 +10,7 @@ import ShoppingListPage from './pages/ShoppingListPage'
 import AIPage from './pages/AIPage'
 import CookingModePage from './pages/CookingModePage'
 import SharedMenuPage from './pages/SharedMenuPage'
+import SettingsPage from './pages/SettingsPage'
 
 const bottomNavLinks = [
   { to: '/', label: 'Inicio', Icon: Home, exact: true },
@@ -51,6 +52,7 @@ function ShellLayout() {
             <Route path="/ia" element={<AIPage />} />
             <Route path="/compra" element={<ShoppingListPage />} />
             <Route path="/compra/:menuId" element={<ShoppingListPage />} />
+            <Route path="/ajustes" element={<SettingsPage />} />
           </Routes>
         </div>
       </div>

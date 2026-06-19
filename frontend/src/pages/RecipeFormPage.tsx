@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, X, ArrowLeft, Save } from 'lucide-react'
 import { getRecipe, createRecipe, updateRecipe } from '../api/recipes'
 import { RecipeIngredientInput } from '../types'
+import { useCategories } from '../hooks/useCategories'
 
 interface FormState {
   name: string
@@ -36,6 +37,7 @@ export default function RecipeFormPage() {
   const [form, setForm] = useState<FormState>(defaultForm)
   const [categoryInput, setCategoryInput] = useState('')
   const [formError, setFormError] = useState('')
+  const { categories: availableCategories } = useCategories()
 
   const { data: existingRecipe } = useQuery({
     queryKey: ['recipe', id],
@@ -132,9 +134,9 @@ export default function RecipeFormPage() {
             <div className="form-group">
               <label className="form-label">Tipo de comida</label>
               <select value={form.meal_type} onChange={e => setForm(f => ({ ...f, meal_type: e.target.value }))} className="form-input">
-                <option value="desayuno">Desayuno</option>
                 <option value="comida">Comida</option>
                 <option value="cena">Cena</option>
+                <option value="ambas">Ambas</option>
               </select>
             </div>
             <div className="form-group">
@@ -158,15 +160,36 @@ export default function RecipeFormPage() {
 
           <div className="form-group">
             <label className="form-label">Categorías</label>
+            {availableCategories.length > 0 && (
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
+                {availableCategories.map(cat => {
+                  const selected = form.category.includes(cat)
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        category: selected ? f.category.filter(c => c !== cat) : [...f.category, cat],
+                      }))}
+                      className={`filter-chip${selected ? ' active' : ''}`}
+                      style={{ fontSize: 'var(--text-xs)' }}
+                    >
+                      {cat}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
               <input type="text" value={categoryInput} onChange={e => setCategoryInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCategory() } }}
-                className="form-input" placeholder="Vegetariano, Rápido…" style={{ flex: 1 }} />
+                className="form-input" placeholder="Categoría personalizada…" style={{ flex: 1 }} />
               <button type="button" onClick={addCategory} className="btn btn-secondary btn-md">Añadir</button>
             </div>
-            {form.category.length > 0 && (
+            {form.category.filter(c => !availableCategories.includes(c)).length > 0 && (
               <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                {form.category.map(cat => (
+                {form.category.filter(c => !availableCategories.includes(c)).map(cat => (
                   <span key={cat} className="badge badge-sage" style={{ gap: 6 }}>
                     {cat}
                     <button type="button" onClick={() => setForm(f => ({ ...f, category: f.category.filter(c => c !== cat) }))}

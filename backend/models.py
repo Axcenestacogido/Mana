@@ -41,6 +41,7 @@ class WeeklyMenu(Base):
     id = Column(Integer, primary_key=True, index=True)
     week_start_date = Column(String, nullable=False)
     name = Column(String, default="")
+    color = Column(String, nullable=True)
     share_token = Column(String, nullable=True, unique=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     entries = relationship("MenuEntry", back_populates="menu", cascade="all, delete-orphan")
