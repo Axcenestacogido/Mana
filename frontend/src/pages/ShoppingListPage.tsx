@@ -47,9 +47,17 @@ export default function ShoppingListPage() {
     navigator.clipboard.writeText(text).then(() => alert('Lista copiada al portapapeles'))
   }
 
-  const checkedCount = (items as ShoppingItem[]).filter(i => i.is_checked).length
-  const totalCount = (items as ShoppingItem[]).length
+  const allItems = items as ShoppingItem[]
+  const checkedCount = allItems.filter(i => i.is_checked).length
+  const totalCount = allItems.length
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0
+
+  const CATEGORY_ORDER = ['verduras','frutas','carnes','pescados','lácteos','huevos','cereales','legumbres','aceites y salsas','especias','otros']
+  const grouped = CATEGORY_ORDER.reduce((acc, cat) => {
+    const catItems = allItems.filter(i => (i.category ?? 'otros') === cat)
+    if (catItems.length > 0) acc[cat] = catItems
+    return acc
+  }, {} as Record<string, ShoppingItem[]>)
 
   return (
     <div style={{ maxWidth: 680 }}>
@@ -122,44 +130,26 @@ export default function ShoppingListPage() {
                 </button>
               </div>
             ) : (
-              <ul style={{ listStyle: 'none' }}>
-                {(items as ShoppingItem[]).map((item, i) => (
-                  <li
-                    key={item.id}
-                    onClick={() => toggleMutation.mutate(item.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-                      padding: 'var(--space-3) var(--space-5)',
-                      borderBottom: i < totalCount - 1 ? '1px solid var(--border-subtle)' : 'none',
-                      cursor: 'pointer',
-                      opacity: item.is_checked ? 0.55 : 1,
-                      transition: 'opacity var(--dur-fast), background var(--dur-fast)',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-sunken)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '')}
-                  >
-                    <div style={{
-                      width: 20, height: 20, borderRadius: 'var(--radius-xs)',
-                      border: `1.5px solid ${item.is_checked ? 'var(--accent)' : 'var(--border-default)'}`,
-                      background: item.is_checked ? 'var(--accent)' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0, transition: 'all var(--dur-fast)',
-                    }}>
-                      {item.is_checked && <Check size={12} color="white" strokeWidth={3} />}
+              <div>
+                {Object.entries(grouped).map(([cat, catItems]) => (
+                  <div key={cat}>
+                    <div style={{ padding: 'var(--space-2) var(--space-5)', fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)', letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase', color: 'var(--text-subtle)', background: 'var(--surface-sunken)', borderBottom: '1px solid var(--border-subtle)', borderTop: '1px solid var(--border-subtle)' }}>
+                      {cat}
                     </div>
-                    <span style={{
-                      flex: 1, textTransform: 'capitalize', fontSize: 'var(--text-sm)',
-                      color: 'var(--text-body)',
-                      textDecoration: item.is_checked ? 'line-through' : 'none',
-                    }}>
-                      {item.ingredient_name}
-                    </span>
-                    <span style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-                      {item.total_quantity} {item.unit}
-                    </span>
-                  </li>
+                    <ul style={{ listStyle: 'none' }}>
+                      {catItems.map((item, i) => (
+                        <li key={item.id} onClick={() => toggleMutation.mutate(item.id)} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3) var(--space-5)', borderBottom: i < catItems.length - 1 ? '1px solid var(--border-subtle)' : 'none', cursor: 'pointer', opacity: item.is_checked ? 0.55 : 1, transition: 'opacity var(--dur-fast), background var(--dur-fast)' }} onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-sunken)')} onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                          <div style={{ width: 20, height: 20, borderRadius: 'var(--radius-xs)', border: `1.5px solid ${item.is_checked ? 'var(--accent)' : 'var(--border-default)'}`, background: item.is_checked ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all var(--dur-fast)' }}>
+                            {item.is_checked && <Check size={12} color="white" strokeWidth={3} />}
+                          </div>
+                          <span style={{ flex: 1, textTransform: 'capitalize', fontSize: 'var(--text-sm)', color: 'var(--text-body)', textDecoration: item.is_checked ? 'line-through' : 'none' }}>{item.ingredient_name}</span>
+                          <span style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{item.total_quantity} {item.unit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 

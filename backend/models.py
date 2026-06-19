@@ -20,6 +20,7 @@ class Recipe(Base):
     servings = Column(Integer, default=4)
     steps = Column(Text, default="[]")
     photo_url = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
     is_favorite = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     recipe_ingredients = relationship("RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan")
@@ -63,4 +64,5 @@ class ShoppingList(Base):
     total_quantity = Column(Float, default=0.0)
     unit = Column(String, default="")
     is_checked = Column(Boolean, default=False)
+    category = Column(String, nullable=True)
     menu = relationship("WeeklyMenu", back_populates="shopping_items")

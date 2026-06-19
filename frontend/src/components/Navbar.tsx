@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import { BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat } from 'lucide-react'
+import { Home, BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat } from 'lucide-react'
 
 const navLinks = [
-  { to: '/', label: 'Recetas', Icon: BookOpen, exact: true },
+  { to: '/', label: 'Inicio', Icon: Home, exact: true },
+  { to: '/recetas', label: 'Recetas', Icon: BookOpen },
   { to: '/menu', label: 'Menú semanal', Icon: Calendar },
   { to: '/compra', label: 'Lista de compra', Icon: ShoppingBag },
   { to: '/ia', label: 'Asistente IA', Icon: Sparkles },

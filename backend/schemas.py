@@ -41,6 +41,7 @@ class RecipeBase(BaseModel):
 
 class RecipeCreate(RecipeBase):
     ingredients: List[RecipeIngredientCreate] = []
+    notes: Optional[str] = None
 
 class RecipeUpdate(BaseModel):
     name: Optional[str] = None
@@ -50,6 +51,7 @@ class RecipeUpdate(BaseModel):
     servings: Optional[int] = None
     steps: Optional[List[str]] = None
     photo_url: Optional[str] = None
+    notes: Optional[str] = None
     ingredients: Optional[List[RecipeIngredientCreate]] = None
 
 class RecipeResponse(RecipeBase):

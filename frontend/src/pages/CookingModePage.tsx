@@ -8,7 +8,22 @@ export default function CookingModePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
+  const [timerSeconds, setTimerSeconds] = useState(0)
+  const [timerRunning, setTimerRunning] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const wakeLockRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => setTimerSeconds(s => s + 1), 1000)
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [timerRunning])
+
+  const resetTimer = () => { setTimerSeconds(0); setTimerRunning(false) }
+  const goToStep = (i: number) => { setCurrentStep(i); resetTimer() }
 
   const { data: recipe, isLoading, error } = useQuery({
     queryKey: ['recipe', id],
@@ -96,7 +111,7 @@ export default function CookingModePage() {
           {steps.map((_, i) => (
             <div
               key={i}
-              onClick={() => setCurrentStep(i)}
+              onClick={() => goToStep(i)}
               style={{
                 flex: 1, height: 4, borderRadius: 'var(--radius-full)',
                 background: i <= currentStep ? 'var(--primary)' : 'var(--neutral-200)',
@@ -134,12 +149,23 @@ export default function CookingModePage() {
           <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--text-subtle)' }}>
             Paso {currentStep + 1} de {totalSteps}
           </div>
+          <div style={{ marginTop: 'var(--space-6)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-3xl)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', letterSpacing: '-0.02em', minWidth: 80 }}>
+              {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:{String(timerSeconds % 60).padStart(2, '0')}
+            </span>
+            <button onClick={() => setTimerRunning(r => !r)} className="btn btn-secondary btn-md">
+              {timerRunning ? 'Pausar' : timerSeconds > 0 ? 'Reanudar' : 'Iniciar'}
+            </button>
+            {timerSeconds > 0 && (
+              <button onClick={resetTimer} className="btn btn-ghost btn-sm" style={{ color: 'var(--text-subtle)' }}>Reset</button>
+            )}
+          </div>
         </div>
 
         {/* Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button
-            onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
+            onClick={() => goToStep(Math.max(0, currentStep - 1))}
             disabled={isFirst}
             className="btn btn-secondary btn-lg"
           >
@@ -150,7 +176,7 @@ export default function CookingModePage() {
               <CheckCircle2 size={17} /> ¡Listo!
             </button>
           ) : (
-            <button onClick={() => setCurrentStep(s => Math.min(totalSteps - 1, s + 1))} className="btn btn-primary btn-lg">
+            <button onClick={() => goToStep(Math.min(totalSteps - 1, currentStep + 1))} className="btn btn-primary btn-lg">
               Siguiente <ArrowRight size={17} />
             </button>
           )}
@@ -166,7 +192,7 @@ export default function CookingModePage() {
               {steps.map((step, i) => (
                 <div
                   key={i}
-                  onClick={() => setCurrentStep(i)}
+                  onClick={() => goToStep(i)}
                   style={{
                     display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start',
                     padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-md)',

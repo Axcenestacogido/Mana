@@ -5,10 +5,31 @@ from models import WeeklyMenu, ShoppingList
 
 router = APIRouter()
 
+CATEGORIES = {
+    "verduras": ["tomate","cebolla","ajo","pimiento","zanahoria","calabacín","espinaca","lechuga","pepino","patata","berenjena","brócoli","coliflor","puerro","champiñon","seta"],
+    "frutas": ["limón","naranja","manzana","plátano","fresa","uva","pera","melocotón","mango","piña","aguacate","lima"],
+    "carnes": ["pollo","ternera","cerdo","cordero","pavo","conejo","jamón","bacon","chorizo","salchicha","carne"],
+    "pescados": ["salmón","atún","merluza","bacalao","gambas","mejillones","calamares","dorada","lubina","langostino"],
+    "lácteos": ["leche","queso","yogur","mantequilla","nata","crema","mozzarella","parmesano"],
+    "huevos": ["huevo","huevos"],
+    "cereales": ["arroz","pasta","pan","harina","avena","quinoa","cuscús","maíz"],
+    "legumbres": ["lenteja","garbanzo","judía","alubia","soja","guisante"],
+    "aceites y salsas": ["aceite","vinagre","salsa","mayonesa","ketchup","mostaza","soja"],
+    "especias": ["sal","pimienta","pimentón","comino","orégano","tomillo","romero","curry","canela","azafrán"],
+    "otros": [],
+}
+
+def categorize_ingredient(name: str) -> str:
+    name_lower = name.lower()
+    for cat, keywords in CATEGORIES.items():
+        if any(kw in name_lower for kw in keywords):
+            return cat
+    return "otros"
+
 @router.get("/{menu_id}")
 def get_shopping_list(menu_id: int, db: Session = Depends(get_db)):
     items = db.query(ShoppingList).filter(ShoppingList.menu_id == menu_id).all()
-    return [{"id": i.id, "menu_id": i.menu_id, "ingredient_name": i.ingredient_name, "total_quantity": i.total_quantity, "unit": i.unit, "is_checked": i.is_checked} for i in items]
+    return [{"id": i.id, "menu_id": i.menu_id, "ingredient_name": i.ingredient_name, "total_quantity": i.total_quantity, "unit": i.unit, "is_checked": i.is_checked, "category": i.category} for i in items]
 
 @router.post("/generate/{menu_id}")
 def generate_shopping_list(menu_id: int, db: Session = Depends(get_db)):
@@ -30,7 +51,7 @@ def generate_shopping_list(menu_id: int, db: Session = Depends(get_db)):
 
     items = []
     for (name, unit), qty in sorted(ingredient_totals.items()):
-        item = ShoppingList(menu_id=menu_id, ingredient_name=name, total_quantity=round(qty, 2), unit=unit)
+        item = ShoppingList(menu_id=menu_id, ingredient_name=name, total_quantity=round(qty, 2), unit=unit, category=categorize_ingredient(name))
         db.add(item)
         items.append(item)
 
@@ -38,7 +59,7 @@ def generate_shopping_list(menu_id: int, db: Session = Depends(get_db)):
     for item in items:
         db.refresh(item)
 
-    return [{"id": i.id, "menu_id": i.menu_id, "ingredient_name": i.ingredient_name, "total_quantity": i.total_quantity, "unit": i.unit, "is_checked": i.is_checked} for i in items]
+    return [{"id": i.id, "menu_id": i.menu_id, "ingredient_name": i.ingredient_name, "total_quantity": i.total_quantity, "unit": i.unit, "is_checked": i.is_checked, "category": i.category} for i in items]
 
 @router.put("/{menu_id}/items/{item_id}/check")
 def toggle_item(menu_id: int, item_id: int, db: Session = Depends(get_db)):

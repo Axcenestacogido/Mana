@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ChefHat, Pencil, Sparkles, Trash2, Clock, Users, X } from 'lucide-react'
+import { ArrowLeft, ChefHat, Pencil, Sparkles, Trash2, Clock, Users, X, Upload } from 'lucide-react'
 import { getRecipe, deleteRecipe } from '../api/recipes'
 import { recipeVariation as createRecipeVariation } from '../api/ai'
 import { createRecipe } from '../api/recipes'
@@ -21,6 +21,20 @@ export default function RecipeDetailPage() {
   const [variationRequest, setVariationRequest] = useState('')
   const [variationLoading, setVariationLoading] = useState(false)
   const [variationError, setVariationError] = useState('')
+  const [photoUploading, setPhotoUploading] = useState(false)
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !recipe) return
+    setPhotoUploading(true)
+    const form = new FormData()
+    form.append('file', file)
+    try {
+      await fetch(`/api/recipes/${recipe.id}/photo`, { method: 'POST', body: form })
+      queryClient.invalidateQueries({ queryKey: ['recipe', id] })
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
+    } catch {} finally { setPhotoUploading(false) }
+  }
 
   const { data: recipe, isLoading, error } = useQuery({
     queryKey: ['recipe', id],
@@ -69,6 +83,10 @@ export default function RecipeDetailPage() {
       <div className="card" style={{ marginBottom: 'var(--space-5)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
           <div style={{ flex: 1 }}>
+            {recipe.photo_url && (
+              <img src={recipe.photo_url} alt={recipe.name}
+                style={{ width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-4)' }} />
+            )}
             <span className={`badge ${config.badge}`} style={{ marginBottom: 'var(--space-3)', display: 'inline-flex' }}>{config.label}</span>
             <h1 style={{
               fontFamily: 'var(--font-display)',
@@ -104,6 +122,10 @@ export default function RecipeDetailPage() {
             <button onClick={() => setShowVariationModal(true)} className="btn btn-secondary btn-md">
               <Sparkles size={14} /> Variación IA
             </button>
+            <label className="btn btn-secondary btn-md" style={{ cursor: 'pointer' }}>
+              <Upload size={14} /> {photoUploading ? 'Subiendo…' : 'Foto'}
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+            </label>
             <button onClick={handleDelete} disabled={deleteMutation.isPending} className="btn btn-ghost btn-md" style={{ color: 'var(--danger)' }}>
               <Trash2 size={14} />
             </button>
@@ -163,6 +185,17 @@ export default function RecipeDetailPage() {
               </li>
             ))}
           </ol>
+        </div>
+      )}
+
+      {recipe.notes && (
+        <div className="card" style={{ marginTop: 'var(--space-5)' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)', marginBottom: 'var(--space-4)' }}>
+            Notas
+          </h2>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', lineHeight: 'var(--leading-relaxed)', whiteSpace: 'pre-wrap' }}>
+            {recipe.notes}
+          </p>
         </div>
       )}
 
