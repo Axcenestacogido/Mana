@@ -26,6 +26,7 @@ export interface Recipe {
   servings: number;
   steps: string[];
   photo_url: string | null;
+  notes?: string | null;
   is_favorite: boolean;
   created_at: string;
   ingredients: RecipeIngredient[];
@@ -65,6 +66,11 @@ export interface ShoppingItem {
   total_quantity: number;
   unit: string;
   is_checked: boolean;
+  category?: string;
+}
+
+export interface RecipeWithNotes extends Recipe {
+  notes?: string | null;
 }
 
 export interface AIGenerateRequest {

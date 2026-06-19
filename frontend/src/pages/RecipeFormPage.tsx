@@ -13,6 +13,7 @@ interface FormState {
   servings: number
   steps: string[]
   ingredients: RecipeIngredientInput[]
+  notes: string
 }
 
 const defaultForm: FormState = {
@@ -23,6 +24,7 @@ const defaultForm: FormState = {
   servings: 4,
   steps: [''],
   ingredients: [{ ingredient_name: '', quantity: 1, unit: 'unidades' }],
+  notes: '',
 }
 
 export default function RecipeFormPage() {
@@ -53,6 +55,7 @@ export default function RecipeFormPage() {
         ingredients: existingRecipe.ingredients.length > 0
           ? existingRecipe.ingredients.map(i => ({ ingredient_name: i.ingredient_name, quantity: i.quantity, unit: i.unit }))
           : [{ ingredient_name: '', quantity: 1, unit: 'unidades' }],
+        notes: existingRecipe.notes ?? '',
       })
     }
   }, [existingRecipe])
@@ -144,6 +147,13 @@ export default function RecipeFormPage() {
               <input type="number" value={form.servings} onChange={e => setForm(f => ({ ...f, servings: parseInt(e.target.value) || 1 }))}
                 className="form-input" min={1} />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Notas personales</label>
+            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              className="form-input" rows={3} style={{ resize: 'vertical' }}
+              placeholder="Trucos, variaciones, tiempos reales…" />
           </div>
 
           <div className="form-group">

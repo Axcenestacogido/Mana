@@ -1,6 +1,6 @@
 import json
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Recipe, Ingredient, RecipeIngredient
@@ -43,6 +43,7 @@ def recipe_to_response(recipe: Recipe) -> dict:
         "servings": recipe.servings,
         "steps": steps,
         "photo_url": recipe.photo_url,
+        "notes": recipe.notes,
         "is_favorite": recipe.is_favorite,
         "created_at": recipe.created_at,
         "ingredients": ingredients,
@@ -107,6 +108,7 @@ def create_recipe(recipe_in: RecipeCreate, db: Session = Depends(get_db)):
         steps=json.dumps(recipe_in.steps, ensure_ascii=False),
         photo_url=recipe_in.photo_url,
     )
+    recipe.notes = recipe_in.notes
     db.add(recipe)
     db.flush()
     for ri_data in recipe_in.ingredients:
@@ -140,6 +142,8 @@ def update_recipe(recipe_id: int, recipe_in: RecipeUpdate, db: Session = Depends
         recipe.steps = json.dumps(recipe_in.steps, ensure_ascii=False)
     if recipe_in.photo_url is not None:
         recipe.photo_url = recipe_in.photo_url
+    if recipe_in.notes is not None:
+        recipe.notes = recipe_in.notes
     if recipe_in.ingredients is not None:
         db.query(RecipeIngredient).filter(RecipeIngredient.recipe_id == recipe_id).delete()
         for ri_data in recipe_in.ingredients:
@@ -159,6 +163,23 @@ def delete_recipe(recipe_id: int, db: Session = Depends(get_db)):
     db.delete(recipe)
     db.commit()
     return {"message": "Receta eliminada"}
+
+@router.post("/{recipe_id}/photo")
+async def upload_recipe_photo(recipe_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    import os, uuid, shutil
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
+    filename = f"{uuid.uuid4()}{ext}"
+    path = os.path.join(upload_dir, filename)
+    with open(path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    recipe.photo_url = f"/uploads/{filename}"
+    db.commit()
+    return {"photo_url": recipe.photo_url}
 
 @router.post("/{recipe_id}/favorite")
 def toggle_favorite(recipe_id: int, db: Session = Depends(get_db)):

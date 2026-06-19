@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from database import engine, Base
 from routers import recipes, menu, ai, shopping
 
@@ -17,6 +18,31 @@ app.add_middleware(
 )
 
 Base.metadata.create_all(bind=engine)
+
+# Auto-migrate: add missing columns to existing DB without breaking data
+def _run_migrations():
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(recipes)"))}
+        for col, ddl in [
+            ("is_favorite", "ALTER TABLE recipes ADD COLUMN is_favorite BOOLEAN DEFAULT 0"),
+            ("notes",       "ALTER TABLE recipes ADD COLUMN notes TEXT"),
+            ("photo_url",   "ALTER TABLE recipes ADD COLUMN photo_url VARCHAR"),
+        ]:
+            if col not in existing:
+                conn.execute(text(ddl))
+        existing_sl = {row[1] for row in conn.execute(text("PRAGMA table_info(shopping_lists)"))}
+        if "category" not in existing_sl:
+            conn.execute(text("ALTER TABLE shopping_lists ADD COLUMN category VARCHAR"))
+        existing_wm = {row[1] for row in conn.execute(text("PRAGMA table_info(weekly_menus)"))}
+        if "share_token" not in existing_wm:
+            conn.execute(text("ALTER TABLE weekly_menus ADD COLUMN share_token VARCHAR"))
+        conn.commit()
+
+_run_migrations()
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(recipes.router, prefix="/api/recipes", tags=["recipes"])
 app.include_router(menu.router, prefix="/api/menu", tags=["menu"])

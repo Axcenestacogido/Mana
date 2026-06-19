@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X, Pencil, Trash2 } from 'lucide-react'
+import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X, Pencil, Trash2, Printer } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getMenus, getMenu, createMenu, updateMenu, deleteMenu, setMenuEntry, generateMenu, shareMenu, revokeShare } from '../api/menu'
 import { getRecipes } from '../api/recipes'
@@ -163,6 +163,9 @@ export default function WeeklyMenuPage() {
               </button>
             </>
           )}
+          <button onClick={() => window.print()} className="btn btn-secondary btn-md no-print">
+            <Printer size={15} /> PDF
+          </button>
           <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="btn btn-primary btn-md">
             <Plus size={15} /> {createMutation.isPending ? 'Creando…' : 'Nuevo menú'}
           </button>

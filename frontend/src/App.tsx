@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { BookOpen, Calendar, ShoppingBag, Sparkles } from 'lucide-react'
+import { Home, BookOpen, Calendar, ShoppingBag, Sparkles } from 'lucide-react'
 import Sidebar from './components/Navbar'
+import DashboardPage from './pages/DashboardPage'
 import RecipesPage from './pages/RecipesPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipeFormPage from './pages/RecipeFormPage'
@@ -11,10 +12,10 @@ import CookingModePage from './pages/CookingModePage'
 import SharedMenuPage from './pages/SharedMenuPage'
 
 const bottomNavLinks = [
-  { to: '/', label: 'Recetas', Icon: BookOpen, exact: true },
-  { to: '/menu', label: 'Menú semanal', Icon: Calendar },
-  { to: '/compra', label: 'Lista de compra', Icon: ShoppingBag },
-  { to: '/ia', label: 'Asistente IA', Icon: Sparkles },
+  { to: '/', label: 'Inicio', Icon: Home, exact: true },
+  { to: '/recetas', label: 'Recetas', Icon: BookOpen },
+  { to: '/menu', label: 'Menú', Icon: Calendar },
+  { to: '/ia', label: 'IA', Icon: Sparkles },
 ]
 
 function BottomNav() {
@@ -41,7 +42,8 @@ function ShellLayout() {
       <div className="app-main">
         <div className="app-content">
           <Routes>
-            <Route path="/" element={<RecipesPage />} />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/recetas" element={<RecipesPage />} />
             <Route path="/recetas/nueva" element={<RecipeFormPage />} />
             <Route path="/recetas/:id" element={<RecipeDetailPage />} />
             <Route path="/recetas/:id/editar" element={<RecipeFormPage />} />
