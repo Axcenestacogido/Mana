@@ -32,6 +32,7 @@ export default function WeeklyMenuPage() {
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null)
   const [dragging, setDragging] = useState<Recipe | null>(null)
   const [touchHighlight, setTouchHighlight] = useState<{ day: number; meal: string } | null>(null)
+  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null)
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -152,7 +153,7 @@ export default function WeeklyMenuPage() {
   }
 
   return (
-    <div>
+    <div onDragEnd={() => setDragging(null)}>
       <div className="page-header">
         <div>
           <h1 className="page-title">Menú semanal</h1>
@@ -275,20 +276,21 @@ export default function WeeklyMenuPage() {
                     key={meal}
                     data-day={di}
                     data-meal={meal}
-                    onDragOver={e => e.preventDefault()}
-                    onDrop={() => handleDrop(di, meal)}
+                    onDragOver={e => { e.preventDefault(); e.currentTarget.style.background = 'var(--terracotta-100)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
+                    onDragLeave={e => { e.currentTarget.style.background = entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)'; e.currentTarget.style.borderColor = '' }}
+                    onDrop={e => { e.currentTarget.style.background = entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)'; e.currentTarget.style.borderColor = ''; handleDrop(di, meal) }}
                     onClick={() => handleSlotClick(di, meal)}
                     style={{
                       minHeight: 72, borderRadius: 'var(--radius-md)',
                       padding: 'var(--space-3)', marginBottom: 'var(--space-2)',
-                      border: `1px ${entry?.recipe ? 'solid' : 'dashed'} var(--border-subtle)`,
+                      border: `${touchHighlight?.day === di && touchHighlight?.meal === meal ? '2px solid var(--primary)' : `1px ${entry?.recipe ? 'solid' : 'dashed'} var(--border-subtle)`}`,
                       background: touchHighlight?.day === di && touchHighlight?.meal === meal
                         ? 'var(--terracotta-100)'
                         : entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)',
-                      cursor: entry?.recipe ? 'pointer' : 'default',
-                      transition: 'background var(--dur-fast)',
+                      cursor: dragging ? 'copy' : entry?.recipe ? 'pointer' : 'default',
+                      transition: 'background var(--dur-fast), border-color var(--dur-fast)',
                     }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe) e.currentTarget.style.background = 'var(--terracotta-100)' }}
+                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe && !dragging) e.currentTarget.style.background = 'var(--terracotta-100)' }}
                     onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe) e.currentTarget.style.background = 'var(--surface-warm)' }}
                   >
                     <div style={{
@@ -336,10 +338,15 @@ export default function WeeklyMenuPage() {
               key={r.id}
               draggable
               onDragStart={() => setDragging(r)}
-              onTouchStart={() => setDragging(r)}
+              onTouchStart={e => {
+                setDragging(r)
+                const touch = e.touches[0]
+                setGhostPos({ x: touch.clientX, y: touch.clientY })
+              }}
               onTouchMove={e => {
                 e.preventDefault()
                 const touch = e.touches[0]
+                setGhostPos({ x: touch.clientX, y: touch.clientY })
                 const slot = getSlotFromPoint(touch.clientX, touch.clientY)
                 setTouchHighlight(slot)
               }}
@@ -349,6 +356,7 @@ export default function WeeklyMenuPage() {
                 if (slot) handleDrop(slot.day, slot.meal)
                 else setDragging(null)
                 setTouchHighlight(null)
+                setGhostPos(null)
               }}
               style={{
                 background: 'var(--surface-card)',
@@ -357,13 +365,15 @@ export default function WeeklyMenuPage() {
                 borderRadius: 'var(--radius-md)',
                 padding: '8px 14px',
                 fontSize: 'var(--text-sm)',
-                cursor: 'grab',
+                cursor: dragging?.id === r.id ? 'grabbing' : 'grab',
                 userSelect: 'none',
                 touchAction: 'none',
-                boxShadow: 'var(--shadow-xs)',
-                transition: 'box-shadow var(--dur-fast)',
+                boxShadow: dragging?.id === r.id ? 'var(--shadow-md)' : 'var(--shadow-xs)',
+                transition: 'box-shadow var(--dur-fast), opacity var(--dur-fast), transform var(--dur-fast)',
                 fontWeight: 'var(--fw-medium)',
                 color: 'var(--text-body)',
+                opacity: dragging && dragging.id !== r.id ? 0.45 : 1,
+                transform: dragging?.id === r.id ? 'scale(1.04)' : 'scale(1)',
               }}
             >
               {r.name}
@@ -434,6 +444,35 @@ export default function WeeklyMenuPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Touch drag ghost */}
+      {ghostPos && dragging && (
+        <div
+          style={{
+            position: 'fixed',
+            left: ghostPos.x,
+            top: ghostPos.y,
+            transform: 'translate(-50%, -120%)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            background: 'var(--surface-card)',
+            border: '2px solid var(--primary)',
+            borderRadius: 'var(--radius-md)',
+            padding: '8px 14px',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--fw-semibold)',
+            color: 'var(--text-strong)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            whiteSpace: 'nowrap',
+            maxWidth: 200,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            opacity: 0.95,
+          }}
+        >
+          🍽 {dragging.name}
         </div>
       )}
     </div>
