@@ -24,10 +24,12 @@ export default function RecipesPage() {
   if (maxPrepTime) params.max_prep_time = parseInt(maxPrepTime)
   if (favoritesOnly) params.favorites_only = true
 
-  const { data: recipes = [], isLoading, error } = useQuery({
+  const { data: recipesRaw = [], isLoading, error } = useQuery({
     queryKey: ['recipes', params],
     queryFn: () => getRecipes(params),
   })
+
+  const recipes = [...recipesRaw].sort((a, b) => a.name.localeCompare(b.name, 'es'))
 
   return (
     <div>
