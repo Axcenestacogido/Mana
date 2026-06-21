@@ -117,6 +117,9 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 input, select, textarea { font-family: inherit; }
 
 /* ── App shell ──────────────────────────────────────────────────── */
+.app-shell.menu-fullwidth .app-sidebar { width: 0; overflow: hidden; border: none; padding: 0; }
+.app-shell.menu-fullwidth .app-content { padding: var(--space-4) var(--space-5); }
+
 .app-shell {
   display: flex;
   height: 100vh;
