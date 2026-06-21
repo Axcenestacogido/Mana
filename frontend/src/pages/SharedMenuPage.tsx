@@ -44,33 +44,45 @@ export default function SharedMenuPage() {
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
         <div style={{ overflowX: 'auto', marginBottom: 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))', gap: 10, minWidth: 600 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(200px, 1fr))', gap: 10, minWidth: 1000 }}>
           {DAYS.map((day, di) => (
             <div key={di}>
               <div style={{ textAlign: 'center', fontWeight: 700, padding: '10px 0', fontSize: 13, color: '#444' }}>{day}</div>
-              {['comida', 'cena'].map(meal => {
-                const entry = getEntry(di, meal)
-                return (
-                  <div key={meal} style={{
-                    minHeight: 80, border: '1px solid #e8e0d8', borderRadius: 10, padding: 10,
-                    marginBottom: 8, background: entry?.recipe ? 'white' : '#f5f0ea',
-                  }}>
-                    <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{meal}</div>
-                    {entry?.recipe ? (
-                      <>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3, marginBottom: 4 }}>
-                          {entry.recipe.name}
+              {[
+                { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo'] },
+                { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo']   },
+              ].map(group => (
+                <div key={group.key} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>{group.label}</div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {group.slots.map((slotKey, idx) => {
+                      const entry = getEntry(di, slotKey)
+                      return (
+                        <div key={slotKey} style={{
+                          flex: 1, minHeight: 70, border: '1px solid #e8e0d8', borderRadius: 8, padding: 8,
+                          background: entry?.recipe ? 'white' : '#f5f0ea', overflow: 'hidden',
+                        }}>
+                          <div style={{ fontSize: 9, color: '#bbb', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>
+                            {idx === 0 ? '1°' : '2°'}
+                          </div>
+                          {entry?.recipe ? (
+                            <>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                {entry.recipe.name}
+                              </div>
+                              <div style={{ fontSize: 10, color: '#888' }}>
+                                {entry.recipe.prep_time_minutes} min · {entry.recipe.servings} pers.
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 11, color: '#ccc', fontStyle: 'italic' }}>—</div>
+                          )}
                         </div>
-                        <div style={{ fontSize: 11, color: '#888' }}>
-                          {entry.recipe.prep_time_minutes} min · {entry.recipe.servings} pers.
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: 12, color: '#ccc', fontStyle: 'italic' }}>—</div>
-                    )}
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           ))}
         </div>
