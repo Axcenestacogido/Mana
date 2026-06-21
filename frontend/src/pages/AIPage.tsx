@@ -228,8 +228,7 @@ export default function AIPage() {
                 <option value="">Cualquiera</option>
                 <option value="verano">Verano</option>
                 <option value="invierno">Invierno</option>
-                <option value="primavera">Primavera</option>
-                <option value="otoño">Otoño</option>
+                <option value="cuaresma">Cuaresma</option>
               </select>
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>

@@ -17,10 +17,9 @@ const MEAL_GROUPS = [
 
 const SEASONS = [
   { value: '', label: 'Cualquiera', Icon: null, color: 'var(--text-muted)' },
-  { value: 'primavera', label: 'Primavera', Icon: Leaf,      color: '#27ae60' },
   { value: 'verano',    label: 'Verano',    Icon: Sun,       color: '#e67e22' },
-  { value: 'otoño',     label: 'Otoño',     Icon: Leaf,      color: '#c0392b' },
   { value: 'invierno',  label: 'Invierno',  Icon: Snowflake, color: '#3498db' },
+  { value: 'cuaresma',  label: 'Cuaresma',  Icon: Leaf,      color: '#8e44ad' },
   { value: 'todo_el_año', label: 'Todo el año', Icon: null,  color: 'var(--text-muted)' },
 ]
 
