@@ -291,11 +291,18 @@ async def import_from_image(file: UploadFile = File(...)):
                 },
                 {
                     "type": "text",
-                    "text": """Eres un chef experto. Extrae la receta completa de esta imagen.
+                    "text": """Eres un chef experto. Analiza esta imagen que puede ser:
+- Una foto de un plato de comida ya preparado
+- Una receta escrita en papel, libro o pantalla
+- Una fotografía de ingredientes
+
+Si es una foto de un plato de comida, identifica el plato y crea una receta detallada para prepararlo.
+Si es una receta escrita, extrae los datos tal como aparecen.
+Si son ingredientes, sugiere una receta con ellos.
 
 Responde ÚNICAMENTE con un JSON válido:
 {
-  "name": "Nombre de la receta",
+  "name": "Nombre de la receta o plato",
   "meal_type": "comida",
   "category": ["categoria1"],
   "prep_time_minutes": 30,
@@ -306,7 +313,7 @@ Responde ÚNICAMENTE con un JSON válido:
   ]
 }
 
-Si no hay receta reconocible, devuelve {"error": "No se encontró ninguna receta"}.
+Solo devuelve {"error": "No se encontró ninguna receta"} si la imagen no tiene ninguna relación con comida o cocina.
 Solo el JSON, sin texto adicional."""
                 }
             ]

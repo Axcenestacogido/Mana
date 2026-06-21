@@ -43,6 +43,7 @@ class WeeklyMenu(Base):
     name = Column(String, default="")
     color = Column(String, nullable=True)
     share_token = Column(String, nullable=True, unique=True, index=True)
+    season = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     entries = relationship("MenuEntry", back_populates="menu", cascade="all, delete-orphan")
     shopping_items = relationship("ShoppingList", back_populates="menu", cascade="all, delete-orphan")

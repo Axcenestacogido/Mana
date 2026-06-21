@@ -56,6 +56,7 @@ export interface WeeklyMenu {
   week_start_date: string;
   name: string;
   color?: string | null;
+  season?: string | null;
   created_at: string;
   entries: MenuEntry[];
 }

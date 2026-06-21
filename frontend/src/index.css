@@ -242,6 +242,20 @@ input, select, textarea { font-family: inherit; }
   box-shadow: var(--shadow-xs);
 }
 
+/* ── Mobile header (mobile only) ────────────────────────────────── */
+.mobile-header {
+  display: none;
+}
+
+/* ── Mobile drawer ──────────────────────────────────────────────── */
+.mobile-drawer-backdrop {
+  display: none;
+}
+
+.mobile-drawer {
+  display: none;
+}
+
 /* ── Bottom nav (mobile only) ───────────────────────────────────── */
 .bottom-nav {
   display: none;
@@ -403,9 +417,76 @@ input, select, textarea { font-family: inherit; }
     flex-direction: column;
     height: 100dvh;
     padding-bottom: 64px;
+    padding-top: 52px;
   }
 
   .app-sidebar { display: none; }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-xs);
+    padding: 0 var(--space-4);
+    z-index: 30;
+  }
+
+  .mobile-header-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .mobile-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-sunken);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background var(--dur-fast);
+  }
+  .mobile-hamburger:hover { background: var(--neutral-200); }
+
+  .mobile-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(28,24,19,0.45);
+    backdrop-filter: blur(3px);
+    z-index: 49;
+  }
+
+  .mobile-drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(80vw, 280px);
+    background: var(--surface-card);
+    border-left: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-xl);
+    z-index: 50;
+    transform: translateX(100%);
+    transition: transform var(--dur-normal) var(--ease-out);
+  }
+  .mobile-drawer.open { transform: translateX(0); }
+
+  .mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-subtle);
+  }
 
   .bottom-nav {
     display: flex;

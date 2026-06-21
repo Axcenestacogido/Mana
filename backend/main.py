@@ -39,6 +39,8 @@ def _run_migrations():
             conn.execute(text("ALTER TABLE weekly_menus ADD COLUMN share_token VARCHAR"))
         if "color" not in existing_wm:
             conn.execute(text("ALTER TABLE weekly_menus ADD COLUMN color VARCHAR"))
+        if "season" not in existing_wm:
+            conn.execute(text("ALTER TABLE weekly_menus ADD COLUMN season VARCHAR"))
         conn.commit()
 
 _run_migrations()
