@@ -28,6 +28,7 @@ def _run_migrations():
             ("is_favorite", "ALTER TABLE recipes ADD COLUMN is_favorite BOOLEAN DEFAULT 0"),
             ("notes",       "ALTER TABLE recipes ADD COLUMN notes TEXT"),
             ("photo_url",   "ALTER TABLE recipes ADD COLUMN photo_url VARCHAR"),
+            ("season",      "ALTER TABLE recipes ADD COLUMN season VARCHAR DEFAULT 'todo_el_año'"),
         ]:
             if col not in existing:
                 conn.execute(text(ddl))
