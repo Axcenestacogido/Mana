@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X, Pencil, Trash2, Printer } from 'lucide-react'
+import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X, Pencil, Trash2, Printer, Sun, Snowflake, Leaf } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getMenus, getMenu, createMenu, updateMenu, deleteMenu, setMenuEntry, generateMenu, shareMenu, revokeShare } from '../api/menu'
 import { getRecipes } from '../api/recipes'
@@ -12,6 +12,33 @@ const MEAL_GROUPS = [
   { key: 'comida', label: 'Comida', badge: 'badge-primary', slots: ['comida_primero', 'comida_segundo'] as const },
   { key: 'cena',   label: 'Cena',   badge: 'badge-info',    slots: ['cena_primero',   'cena_segundo']   as const },
 ] as const
+
+const SEASONS = [
+  { value: '', label: 'Sin temporada' },
+  { value: 'verano', label: 'Verano', Icon: Sun, color: '#e67e22' },
+  { value: 'invierno', label: 'Invierno', Icon: Snowflake, color: '#3498db' },
+  { value: 'cuaresma', label: 'Cuaresma', Icon: Leaf, color: '#27ae60' },
+]
+
+function SeasonBadge({ season }: { season?: string | null }) {
+  const s = SEASONS.find(x => x.value === season)
+  if (!s || !s.value) return null
+  const Icon = s.Icon!
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: s.color + '18', color: s.color,
+      border: `1px solid ${s.color}44`,
+      borderRadius: 'var(--radius-full)',
+      padding: '2px 8px', fontSize: 'var(--text-2xs)',
+      fontWeight: 'var(--fw-semibold)', letterSpacing: 'var(--tracking-eyebrow)',
+      textTransform: 'uppercase',
+    }}>
+      <Icon size={10} />
+      {s.label}
+    </span>
+  )
+}
 
 function getSlotFromPoint(x: number, y: number): { day: number; meal: string } | null {
   const el = document.elementFromPoint(x, y)
@@ -40,7 +67,12 @@ export default function WeeklyMenuPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editName, setEditName] = useState('')
   const [editColor, setEditColor] = useState<string>('')
+  const [editSeason, setEditSeason] = useState<string>('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createSeason, setCreateSeason] = useState('')
+  const [filterSeason, setFilterSeason] = useState<string>('all')
 
   const MENU_COLORS = [
     { value: '', label: 'Sin color' },
@@ -57,7 +89,11 @@ export default function WeeklyMenuPage() {
   const { data: menus = [] } = useQuery({ queryKey: ['menus'], queryFn: getMenus })
   const { data: recipes = [] } = useQuery({ queryKey: ['recipes'], queryFn: () => getRecipes() })
 
-  const resolvedId = activeMenuId ?? menus[0]?.id ?? null
+  const filteredMenus = filterSeason === 'all'
+    ? menus
+    : menus.filter(m => (m.season ?? '') === filterSeason)
+
+  const resolvedId = activeMenuId ?? filteredMenus[0]?.id ?? menus[0]?.id ?? null
 
   const { data: activeMenu } = useQuery({
     queryKey: ['menu', resolvedId],
@@ -69,20 +105,24 @@ export default function WeeklyMenuPage() {
     if (activeMenu) {
       setEditName(activeMenu.name ?? activeMenu.week_start_date)
       setEditColor(activeMenu.color ?? '')
+      setEditSeason(activeMenu.season ?? '')
     }
   }, [activeMenu])
 
   const createMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (params: { name: string; season: string }) => {
       const monday = getMonday()
       const dateStr = monday.toISOString().split('T')[0]
-      return createMenu({ week_start_date: dateStr, name: `Semana del ${dateStr}` })
+      return createMenu({ week_start_date: dateStr, name: params.name || `Menú semana ${dateStr}`, season: params.season || null })
     },
     onSuccess: (m) => {
       setCreateError(null)
       qc.invalidateQueries({ queryKey: ['menus'] })
       qc.invalidateQueries({ queryKey: ['menu', m.id] })
       setActiveMenuId(m.id)
+      setShowCreateModal(false)
+      setCreateName('')
+      setCreateSeason('')
     },
     onError: (e: any) => setCreateError(e?.response?.data?.detail || 'Error al crear el menú'),
   })
@@ -112,8 +152,8 @@ export default function WeeklyMenuPage() {
   })
 
   const renameMutation = useMutation({
-    mutationFn: ({ name, color }: { name: string; color: string }) =>
-      updateMenu(resolvedId!, { name, color: color || null }),
+    mutationFn: ({ name, color, season }: { name: string; color: string; season: string }) =>
+      updateMenu(resolvedId!, { name, color: color || null, season: season || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['menus'] })
       qc.invalidateQueries({ queryKey: ['menu', resolvedId] })
@@ -153,6 +193,38 @@ export default function WeeklyMenuPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const seasonSelector = (value: string, onChange: (v: string) => void) => (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {SEASONS.map(s => {
+        const Icon = s.Icon
+        const isSelected = value === s.value
+        return (
+          <button
+            key={s.value}
+            type="button"
+            onClick={() => onChange(s.value)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-full)',
+              border: isSelected
+                ? `2px solid ${s.color || 'var(--border-strong)'}`
+                : '1px solid var(--border-default)',
+              background: isSelected ? (s.color ? s.color + '18' : 'var(--surface-sunken)') : 'var(--surface-card)',
+              color: isSelected ? (s.color || 'var(--text-body)') : 'var(--text-muted)',
+              fontWeight: isSelected ? 'var(--fw-semibold)' : 'var(--fw-medium)',
+              fontSize: 'var(--text-sm)',
+              cursor: 'pointer',
+            }}
+          >
+            {Icon && <Icon size={13} />}
+            {s.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div onDragEnd={() => setDragging(null)}>
       <div className="page-header" style={activeMenu?.color ? {
@@ -163,11 +235,12 @@ export default function WeeklyMenuPage() {
         <div>
           <h1 className="page-title">Menú semanal</h1>
           {activeMenu && (
-            <p className="page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <p className="page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {activeMenu.color && (
                 <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: activeMenu.color, flexShrink: 0 }} />
               )}
               {activeMenu.name ?? activeMenu.week_start_date}
+              <SeasonBadge season={activeMenu.season} />
             </p>
           )}
         </div>
@@ -192,7 +265,7 @@ export default function WeeklyMenuPage() {
                 <Share2 size={15} /> Compartir
               </button>
               <button onClick={() => setShowEditModal(true)} className="btn btn-secondary btn-md">
-                <Pencil size={14} /> Renombrar
+                <Pencil size={14} /> Editar
               </button>
               <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-ghost btn-md" style={{ color: 'var(--danger)' }}>
                 <Trash2 size={14} />
@@ -202,8 +275,8 @@ export default function WeeklyMenuPage() {
           <button onClick={() => window.print()} className="btn btn-secondary btn-md no-print">
             <Printer size={15} /> PDF
           </button>
-          <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending} className="btn btn-primary btn-md">
-            <Plus size={15} /> {createMutation.isPending ? 'Creando…' : 'Nuevo menú'}
+          <button onClick={() => setShowCreateModal(true)} className="btn btn-primary btn-md">
+            <Plus size={15} /> Nuevo menú
           </button>
         </div>
       </div>
@@ -230,30 +303,75 @@ export default function WeeklyMenuPage() {
         </div>
       )}
 
-      {/* Menu selector */}
-      {menus.length > 1 && (
-        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
-          {menus.map(m => (
-            <button
-              key={m.id}
-              onClick={() => setActiveMenuId(m.id)}
-              className={`filter-chip${activeMenu?.id === m.id ? ' active' : ''}`}
-              style={m.color ? { borderLeft: `3px solid ${m.color}` } : undefined}
-            >
-              {m.color && (
-                <span style={{
-                  display: 'inline-block', width: 8, height: 8,
-                  borderRadius: '50%', background: m.color,
-                  marginRight: 6, flexShrink: 0,
-                }} />
-              )}
-              {m.name ?? m.week_start_date}
-            </button>
-          ))}
+      {/* Season filter + menu selector */}
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        {/* Season filter tabs */}
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setFilterSeason('all')}
+            className={`filter-chip${filterSeason === 'all' ? ' active' : ''}`}
+          >
+            Todos
+          </button>
+          {SEASONS.filter(s => s.value).map(s => {
+            const Icon = s.Icon!
+            const count = menus.filter(m => (m.season ?? '') === s.value).length
+            if (count === 0) return null
+            return (
+              <button
+                key={s.value}
+                onClick={() => setFilterSeason(s.value)}
+                className={`filter-chip${filterSeason === s.value ? ' active' : ''}`}
+                style={filterSeason === s.value ? { borderColor: s.color, color: s.color, background: s.color + '12' } : undefined}
+              >
+                <Icon size={12} />
+                {s.label}
+                <span style={{ opacity: 0.6, fontSize: 'var(--text-2xs)' }}>({count})</span>
+              </button>
+            )
+          })}
         </div>
-      )}
 
-      {/* Weekly grid */}
+        {/* Menu selector within filter */}
+        {filteredMenus.length > 1 && (
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            {filteredMenus.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setActiveMenuId(m.id)}
+                className={`filter-chip${activeMenu?.id === m.id ? ' active' : ''}`}
+                style={m.color ? { borderLeft: `3px solid ${m.color}` } : undefined}
+              >
+                {m.color && (
+                  <span style={{
+                    display: 'inline-block', width: 8, height: 8,
+                    borderRadius: '50%', background: m.color,
+                    marginRight: 6, flexShrink: 0,
+                  }} />
+                )}
+                {m.name ?? m.week_start_date}
+                <SeasonBadge season={m.season} />
+              </button>
+            ))}
+          </div>
+        )}
+        {filteredMenus.length === 1 && menus.length > 1 && (
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            {filteredMenus.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setActiveMenuId(m.id)}
+                className={`filter-chip${activeMenu?.id === m.id ? ' active' : ''}`}
+                style={m.color ? { borderLeft: `3px solid ${m.color}` } : undefined}
+              >
+                {m.name ?? m.week_start_date}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Weekly grid — flat structure so CSS grid aligns rows across columns */}
       <div style={{
         background: 'var(--surface-card)',
         border: '1px solid var(--border-subtle)',
@@ -341,8 +459,6 @@ export default function WeeklyMenuPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          ))}
         </div>
       </div>
 
@@ -404,26 +520,80 @@ export default function WeeklyMenuPage() {
         </div>
       </div>
 
-      {/* Edit name modal */}
+      {/* Create menu modal */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,24,19,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 'var(--space-4)' }}>
+          <div className="card" style={{ width: '100%', maxWidth: 460, borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-xl)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)' }}>Nuevo menú</h2>
+              <button onClick={() => setShowCreateModal(false)} className="btn btn-ghost btn-sm"><X size={16} /></button>
+            </div>
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                Nombre del menú
+              </label>
+              <input
+                type="text"
+                value={createName}
+                onChange={e => setCreateName(e.target.value)}
+                placeholder="Ej: Menú verano semana 1"
+                onKeyDown={e => { if (e.key === 'Enter') createMutation.mutate({ name: createName, season: createSeason }) }}
+                className="form-input"
+                style={{ width: '100%' }}
+                autoFocus
+              />
+            </div>
+            <div style={{ marginBottom: 'var(--space-5)' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                Temporada
+              </label>
+              {seasonSelector(createSeason, setCreateSeason)}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary btn-md">Cancelar</button>
+              <button
+                onClick={() => createMutation.mutate({ name: createName, season: createSeason })}
+                disabled={createMutation.isPending}
+                className="btn btn-primary btn-md"
+              >
+                <Plus size={15} /> {createMutation.isPending ? 'Creando…' : 'Crear menú'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal */}
       {showEditModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,24,19,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 'var(--space-4)' }}>
-          <div className="card" style={{ width: '100%', maxWidth: 420, borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-xl)' }}>
+          <div className="card" style={{ width: '100%', maxWidth: 460, borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-xl)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)' }}>Editar menú</h2>
               <button onClick={() => setShowEditModal(false)} className="btn btn-ghost btn-sm"><X size={16} /></button>
             </div>
-            <input
-              type="text"
-              value={editName}
-              onChange={e => setEditName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && editName.trim()) renameMutation.mutate({ name: editName.trim(), color: editColor }) }}
-              className="form-input"
-              style={{ width: '100%', marginBottom: 'var(--space-4)' }}
-              autoFocus
-            />
             <div style={{ marginBottom: 'var(--space-4)' }}>
               <label style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
-                Color de temporada
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && editName.trim()) renameMutation.mutate({ name: editName.trim(), color: editColor, season: editSeason }) }}
+                className="form-input"
+                style={{ width: '100%' }}
+                autoFocus
+              />
+            </div>
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                Temporada
+              </label>
+              {seasonSelector(editSeason, setEditSeason)}
+            </div>
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--text-muted)', display: 'block', marginBottom: 'var(--space-2)' }}>
+                Color
               </label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {MENU_COLORS.map(c => (
@@ -443,7 +613,7 @@ export default function WeeklyMenuPage() {
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowEditModal(false)} className="btn btn-secondary btn-md">Cancelar</button>
-              <button onClick={() => editName.trim() && renameMutation.mutate({ name: editName.trim(), color: editColor })} disabled={renameMutation.isPending || !editName.trim()} className="btn btn-primary btn-md">
+              <button onClick={() => editName.trim() && renameMutation.mutate({ name: editName.trim(), color: editColor, season: editSeason })} disabled={renameMutation.isPending || !editName.trim()} className="btn btn-primary btn-md">
                 <Check size={15} /> Guardar
               </button>
             </div>
@@ -494,7 +664,7 @@ export default function WeeklyMenuPage() {
             opacity: 0.95,
           }}
         >
-          🍽 {dragging.name}
+          {dragging.name}
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ export const getMenus = () =>
 export const getMenu = (id: number) =>
   client.get<WeeklyMenu>(`/menu/${id}`).then(r => r.data)
 
-export const createMenu = (data: { week_start_date: string; name?: string }) =>
+export const createMenu = (data: { week_start_date: string; name?: string; season?: string | null }) =>
   client.post<WeeklyMenu>('/menu/', data).then(r => r.data)
 
 export const setMenuEntry = (menuId: number, dayOfWeek: number, mealType: string, recipeId?: number) =>
@@ -18,8 +18,8 @@ export const setMenuEntry = (menuId: number, dayOfWeek: number, mealType: string
 export const generateMenu = (menuId: number, rules?: Record<string, string>, season?: string) =>
   client.post<WeeklyMenu>(`/menu/${menuId}/generate`, { rules: rules ?? {}, season: season ?? '' }).then(r => r.data)
 
-export const updateMenu = (id: number, data: { name?: string; color?: string | null }) =>
-  client.patch<{ id: number; name: string; week_start_date: string; color?: string | null }>(`/menu/${id}`, data).then(r => r.data)
+export const updateMenu = (id: number, data: { name?: string; color?: string | null; season?: string | null }) =>
+  client.patch<{ id: number; name: string; week_start_date: string; color?: string | null; season?: string | null }>(`/menu/${id}`, data).then(r => r.data)
 
 export const deleteMenu = (id: number) =>
   client.delete(`/menu/${id}`)

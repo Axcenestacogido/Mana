@@ -76,6 +76,7 @@ class RecipeResponse(RecipeBase):
 class WeeklyMenuBase(BaseModel):
     week_start_date: str
     name: str = ""
+    season: Optional[str] = None
 
 class WeeklyMenuCreate(WeeklyMenuBase):
     pass

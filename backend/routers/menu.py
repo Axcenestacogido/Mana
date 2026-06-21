@@ -53,6 +53,7 @@ def menu_to_response(menu: WeeklyMenu) -> dict:
         "week_start_date": menu.week_start_date,
         "name": menu.name,
         "color": menu.color,
+        "season": menu.season,
         "created_at": menu.created_at,
         "entries": entries,
     }
@@ -60,7 +61,7 @@ def menu_to_response(menu: WeeklyMenu) -> dict:
 @router.get("")
 def list_menus(db: Session = Depends(get_db)):
     menus = db.query(WeeklyMenu).order_by(WeeklyMenu.created_at.desc()).all()
-    return [{"id": m.id, "week_start_date": m.week_start_date, "name": m.name, "color": m.color, "created_at": m.created_at} for m in menus]
+    return [{"id": m.id, "week_start_date": m.week_start_date, "name": m.name, "color": m.color, "season": m.season, "created_at": m.created_at} for m in menus]
 
 @router.get("/current")
 def get_current_menu(db: Session = Depends(get_db)):
@@ -137,7 +138,7 @@ def get_menu(menu_id: int, db: Session = Depends(get_db)):
 
 @router.post("")
 def create_menu(menu_in: WeeklyMenuCreate, db: Session = Depends(get_db)):
-    menu = WeeklyMenu(week_start_date=menu_in.week_start_date, name=menu_in.name)
+    menu = WeeklyMenu(week_start_date=menu_in.week_start_date, name=menu_in.name, season=menu_in.season)
     db.add(menu)
     db.commit()
     db.refresh(menu)
@@ -152,9 +153,11 @@ def update_menu(menu_id: int, data: dict, db: Session = Depends(get_db)):
         menu.name = data["name"]
     if "color" in data:
         menu.color = data["color"]
+    if "season" in data:
+        menu.season = data["season"]
     db.commit()
     db.refresh(menu)
-    return {"id": menu.id, "week_start_date": menu.week_start_date, "name": menu.name, "color": menu.color, "created_at": menu.created_at}
+    return {"id": menu.id, "week_start_date": menu.week_start_date, "name": menu.name, "color": menu.color, "season": menu.season, "created_at": menu.created_at}
 
 @router.delete("/{menu_id}")
 def delete_menu(menu_id: int, db: Session = Depends(get_db)):
