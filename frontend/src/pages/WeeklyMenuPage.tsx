@@ -459,6 +459,8 @@ export default function WeeklyMenuPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          ))}
         </div>
       </div>
 
