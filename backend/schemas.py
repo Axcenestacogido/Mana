@@ -34,6 +34,7 @@ class RecipeBase(BaseModel):
     name: str
     meal_type: str = "comida"
     category: List[str] = []
+    season: Optional[str] = "todo_el_año"
     prep_time_minutes: int = 30
     servings: int = 4
     steps: List[str] = []
@@ -47,6 +48,7 @@ class RecipeUpdate(BaseModel):
     name: Optional[str] = None
     meal_type: Optional[str] = None
     category: Optional[List[str]] = None
+    season: Optional[str] = None
     prep_time_minutes: Optional[int] = None
     servings: Optional[int] = None
     steps: Optional[List[str]] = None

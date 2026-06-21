@@ -22,6 +22,7 @@ class Recipe(Base):
     photo_url = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     is_favorite = Column(Boolean, default=False)
+    season = Column(String, nullable=True, default="todo_el_año")
     created_at = Column(DateTime, default=datetime.utcnow)
     recipe_ingredients = relationship("RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan")
     menu_entries = relationship("MenuEntry", back_populates="recipe")

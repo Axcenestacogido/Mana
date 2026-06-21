@@ -22,6 +22,7 @@ export interface Recipe {
   name: string;
   meal_type: string;
   category: string[];
+  season: string;
   prep_time_minutes: number;
   servings: number;
   steps: string[];
@@ -36,6 +37,7 @@ export interface RecipeCreate {
   name: string;
   meal_type: string;
   category: string[];
+  season: string;
   prep_time_minutes: number;
   servings: number;
   steps: string[];

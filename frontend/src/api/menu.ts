@@ -15,10 +15,8 @@ export const setMenuEntry = (menuId: number, dayOfWeek: number, mealType: string
     params: { day_of_week: dayOfWeek, meal_type: mealType, recipe_id: recipeId }
   }).then(r => r.data)
 
-export const generateMenu = (menuId: number, rules?: Record<string, string>) =>
-  client.post<WeeklyMenu>(`/menu/${menuId}/generate`, null, {
-    params: { rules: rules ? JSON.stringify(rules) : undefined }
-  }).then(r => r.data)
+export const generateMenu = (menuId: number, rules?: Record<string, string>, season?: string) =>
+  client.post<WeeklyMenu>(`/menu/${menuId}/generate`, { rules: rules ?? {}, season: season ?? '' }).then(r => r.data)
 
 export const updateMenu = (id: number, data: { name?: string; color?: string | null }) =>
   client.patch<{ id: number; name: string; week_start_date: string; color?: string | null }>(`/menu/${id}`, data).then(r => r.data)

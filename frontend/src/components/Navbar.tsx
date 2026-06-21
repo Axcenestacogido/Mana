@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat, Settings } from 'lucide-react'
+import { Home, BookOpen, Calendar, ShoppingBag, Sparkles, ChefHat, Settings, LayoutTemplate } from 'lucide-react'
 
 const navLinks = [
   { to: '/', label: 'Inicio', Icon: Home, exact: true },
   { to: '/recetas', label: 'Recetas', Icon: BookOpen },
   { to: '/menu', label: 'Menú semanal', Icon: Calendar },
+  { to: '/plantilla', label: 'Plantilla de menú', Icon: LayoutTemplate },
   { to: '/compra', label: 'Lista de compra', Icon: ShoppingBag },
   { to: '/ia', label: 'Asistente IA', Icon: Sparkles },
 ]
