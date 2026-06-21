@@ -7,6 +7,7 @@ import RecipesPage from './pages/RecipesPage'
 import RecipeDetailPage from './pages/RecipeDetailPage'
 import RecipeFormPage from './pages/RecipeFormPage'
 import WeeklyMenuPage from './pages/WeeklyMenuPage'
+import MenuTemplatePage from './pages/MenuTemplatePage'
 import ShoppingListPage from './pages/ShoppingListPage'
 import AIPage from './pages/AIPage'
 import CookingModePage from './pages/CookingModePage'
@@ -127,6 +128,7 @@ function ShellLayout() {
             <Route path="/recetas/:id" element={<RecipeDetailPage />} />
             <Route path="/recetas/:id/editar" element={<RecipeFormPage />} />
             <Route path="/menu" element={<WeeklyMenuPage />} />
+            <Route path="/plantilla" element={<MenuTemplatePage />} />
             <Route path="/ia" element={<AIPage />} />
             <Route path="/compra" element={<ShoppingListPage />} />
             <Route path="/compra/:menuId" element={<ShoppingListPage />} />

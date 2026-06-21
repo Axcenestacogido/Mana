@@ -10,6 +10,7 @@ interface FormState {
   name: string
   meal_type: string
   category: string[]
+  season: string
   prep_time_minutes: number
   servings: number
   steps: string[]
@@ -21,12 +22,21 @@ const defaultForm: FormState = {
   name: '',
   meal_type: 'comida',
   category: [],
+  season: 'todo_el_año',
   prep_time_minutes: 30,
   servings: 4,
   steps: [''],
   ingredients: [{ ingredient_name: '', quantity: 1, unit: 'unidades' }],
   notes: '',
 }
+
+const SEASONS = [
+  { value: 'todo_el_año', label: 'Todo el año' },
+  { value: 'primavera',   label: 'Primavera' },
+  { value: 'verano',      label: 'Verano' },
+  { value: 'otoño',       label: 'Otoño' },
+  { value: 'invierno',    label: 'Invierno' },
+]
 
 export default function RecipeFormPage() {
   const { id } = useParams<{ id: string }>()
@@ -51,6 +61,7 @@ export default function RecipeFormPage() {
         name: existingRecipe.name,
         meal_type: existingRecipe.meal_type,
         category: existingRecipe.category,
+        season: existingRecipe.season ?? 'todo_el_año',
         prep_time_minutes: existingRecipe.prep_time_minutes,
         servings: existingRecipe.servings,
         steps: existingRecipe.steps.length > 0 ? existingRecipe.steps : [''],
@@ -130,8 +141,8 @@ export default function RecipeFormPage() {
               className="form-input" placeholder="Nombre de la receta" style={inputStyle} required />
           </div>
 
-          <div className="form-grid-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
-            <div className="form-group">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Tipo de comida</label>
               <select value={form.meal_type} onChange={e => setForm(f => ({ ...f, meal_type: e.target.value }))} className="form-input">
                 <option value="comida">Comida</option>
@@ -139,6 +150,15 @@ export default function RecipeFormPage() {
                 <option value="ambas">Ambas</option>
               </select>
             </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Estación del año</label>
+              <select value={form.season} onChange={e => setForm(f => ({ ...f, season: e.target.value }))} className="form-input">
+                {SEASONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <div className="form-group">
               <label className="form-label">Tiempo (min)</label>
               <input type="number" value={form.prep_time_minutes} onChange={e => setForm(f => ({ ...f, prep_time_minutes: parseInt(e.target.value) || 0 }))}

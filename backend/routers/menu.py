@@ -2,12 +2,17 @@ import json
 import random
 import secrets
 from datetime import date, timedelta
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional, Dict
+from fastapi import APIRouter, Depends, HTTPException, Body
+from pydantic import BaseModel as PydanticModel
 from sqlalchemy.orm import Session
 from database import get_db
 from models import WeeklyMenu, MenuEntry, Recipe
 from schemas import WeeklyMenuCreate, MenuEntryCreate
+
+class GenerateRequest(PydanticModel):
+    rules: Dict[str, str] = {}
+    season: str = ""
 
 router = APIRouter()
 
@@ -212,7 +217,11 @@ def set_entry(
 
 
 @router.post("/{menu_id}/generate")
-def generate_menu_entries(menu_id: int, db: Session = Depends(get_db)):
+def generate_menu_entries(
+    menu_id: int,
+    body: GenerateRequest = Body(default_factory=GenerateRequest),
+    db: Session = Depends(get_db)
+):
     menu = db.query(WeeklyMenu).filter(WeeklyMenu.id == menu_id).first()
     if not menu:
         raise HTTPException(status_code=404, detail="Menú no encontrado")
@@ -221,23 +230,43 @@ def generate_menu_entries(menu_id: int, db: Session = Depends(get_db)):
     if not recipes:
         raise HTTPException(status_code=400, detail="No hay recetas en la base de datos")
 
-    comida_recipes = [r for r in recipes if r.meal_type in ("comida", "ambos")] or recipes
-    cena_recipes = [r for r in recipes if r.meal_type in ("cena", "ambos")] or recipes
-
     db.query(MenuEntry).filter(MenuEntry.menu_id == menu_id).delete()
 
-    used_comida: list = []
-    used_cena: list = []
-    for day in range(7):
-        available_c = [r for r in comida_recipes if r.id not in used_comida] or comida_recipes
-        c = random.choice(available_c)
-        used_comida.append(c.id)
-        db.add(MenuEntry(menu_id=menu_id, day_of_week=day, meal_type="comida", recipe_id=c.id))
+    SLOTS = ["comida_primero", "comida_segundo", "cena_primero", "cena_segundo"]
+    used_ids: list = []
 
-        available_ce = [r for r in cena_recipes if r.id not in used_cena] or cena_recipes
-        ce = random.choice(available_ce)
-        used_cena.append(ce.id)
-        db.add(MenuEntry(menu_id=menu_id, day_of_week=day, meal_type="cena", recipe_id=ce.id))
+    for day in range(7):
+        for slot in SLOTS:
+            meal_base = "comida" if slot.startswith("comida") else "cena"
+            slot_key = f"{day}_{slot}"
+            category = body.rules.get(slot_key, "")
+
+            # Base pool filtered by meal type
+            pool = [r for r in recipes if r.meal_type in (meal_base, "ambas")] or recipes
+
+            # Filter by category if the template specifies one for this slot
+            if category:
+                cat_pool = []
+                for r in pool:
+                    try:
+                        cats = json.loads(r.category) if isinstance(r.category, str) else (r.category or [])
+                    except Exception:
+                        cats = []
+                    if category in cats:
+                        cat_pool.append(r)
+                if cat_pool:
+                    pool = cat_pool
+
+            # Filter by season if specified
+            if body.season and body.season != "todo_el_año":
+                season_pool = [r for r in pool if (r.season or "todo_el_año") in (body.season, "todo_el_año")]
+                if season_pool:
+                    pool = season_pool
+
+            available = [r for r in pool if r.id not in used_ids] or pool
+            chosen = random.choice(available)
+            used_ids.append(chosen.id)
+            db.add(MenuEntry(menu_id=menu_id, day_of_week=day, meal_type=slot, recipe_id=chosen.id))
 
     db.commit()
     db.refresh(menu)

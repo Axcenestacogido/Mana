@@ -7,10 +7,11 @@ import { getRecipes } from '../api/recipes'
 import type { Recipe } from '../types'
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const MEAL_SLOTS = ['comida', 'cena']
 
-const MEAL_LABEL: Record<string, string> = { comida: 'Comida', cena: 'Cena' }
-const MEAL_BADGE: Record<string, string> = { comida: 'badge-primary', cena: 'badge-info' }
+const MEAL_GROUPS = [
+  { key: 'comida', label: 'Comida', badge: 'badge-primary', slots: ['comida_primero', 'comida_segundo'] as const },
+  { key: 'cena',   label: 'Cena',   badge: 'badge-info',    slots: ['cena_primero',   'cena_segundo']   as const },
+] as const
 
 const SEASONS = [
   { value: '', label: 'Sin temporada' },
@@ -381,79 +382,83 @@ export default function WeeklyMenuPage() {
         marginBottom: 'var(--space-8)',
         borderTop: activeMenu?.color ? `3px solid ${activeMenu.color}` : '1px solid var(--border-subtle)',
       }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(110px, 1fr))',
-          gap: 'var(--space-3)',
-          minWidth: 700,
-        }}>
-          {/* Row 1: Day headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(200px, 1fr))', gap: 'var(--space-3)', minWidth: 1100 }}>
           {DAYS.map((day, di) => (
-            <div key={`h${di}`} style={{
-              textAlign: 'center', padding: 'var(--space-2) 0 var(--space-3)',
-              fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)',
-              letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase',
-              color: activeMenu?.color ?? 'var(--text-muted)',
-              borderBottom: activeMenu?.color ? `2px solid ${activeMenu.color}22` : '2px solid var(--border-subtle)',
-              marginBottom: 4,
-            }}>
-              {day}
-            </div>
-          ))}
-
-          {/* Rows 2–3: meal slots (comida then cena), all in the same CSS grid row */}
-          {MEAL_SLOTS.map(meal =>
-            DAYS.map((_, di) => {
-              const entry = getEntry(di, meal)
-              return (
-                <div
-                  key={`${meal}-${di}`}
-                  data-day={di}
-                  data-meal={meal}
-                  onDragOver={e => { e.preventDefault(); e.currentTarget.style.background = 'var(--terracotta-100)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
-                  onDragLeave={e => { e.currentTarget.style.background = entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)'; e.currentTarget.style.borderColor = '' }}
-                  onDrop={e => { e.currentTarget.style.background = entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)'; e.currentTarget.style.borderColor = ''; handleDrop(di, meal) }}
-                  onClick={() => handleSlotClick(di, meal)}
-                  style={{
-                    minHeight: 72, borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-3)',
-                    border: `${touchHighlight?.day === di && touchHighlight?.meal === meal ? '2px solid var(--primary)' : `1px ${entry?.recipe ? 'solid' : 'dashed'} var(--border-subtle)`}`,
-                    background: touchHighlight?.day === di && touchHighlight?.meal === meal
-                      ? 'var(--terracotta-100)'
-                      : entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)',
-                    cursor: dragging ? 'copy' : entry?.recipe ? 'pointer' : 'default',
-                    transition: 'background var(--dur-fast), border-color var(--dur-fast)',
-                  }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe && !dragging) e.currentTarget.style.background = 'var(--terracotta-100)' }}
-                  onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe) e.currentTarget.style.background = 'var(--surface-warm)' }}
-                >
+            <div key={di}>
+              <div style={{
+                textAlign: 'center', padding: 'var(--space-2) 0 var(--space-3)',
+                fontSize: 'var(--text-xs)', fontWeight: 'var(--fw-bold)',
+                letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase',
+                color: activeMenu?.color ?? 'var(--text-muted)',
+                borderBottom: activeMenu?.color ? `2px solid ${activeMenu.color}22` : undefined,
+                marginBottom: activeMenu?.color ? 4 : undefined,
+              }}>
+                {day}
+              </div>
+              {MEAL_GROUPS.map(group => (
+                <div key={group.key} style={{ marginBottom: 'var(--space-3)' }}>
                   <div style={{
-                    fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
+                    fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)',
                     letterSpacing: 'var(--tracking-eyebrow)', textTransform: 'uppercase',
                     color: 'var(--text-subtle)', marginBottom: 4,
                   }}>
-                    {MEAL_LABEL[meal]}
+                    {group.label}
                   </div>
-                  {entry?.recipe ? (
-                    <>
-                      <div style={{
-                        fontFamily: 'var(--font-display)', fontSize: 'var(--text-sm)',
-                        fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)',
-                        lineHeight: 'var(--leading-snug)', marginBottom: 4,
-                      }}>
-                        {entry.recipe.name}
-                      </div>
-                      <span className={`badge badge-sm ${MEAL_BADGE[meal]}`}>{MEAL_LABEL[meal]}</span>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-subtle)', marginTop: 4 }}>
-                      Arrastra aquí
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {group.slots.map((slotKey, idx) => {
+                      const entry = getEntry(di, slotKey)
+                      const isHighlighted = touchHighlight?.day === di && touchHighlight?.meal === slotKey
+                      return (
+                        <div
+                          key={slotKey}
+                          data-day={di}
+                          data-meal={slotKey}
+                          onDragOver={e => { e.preventDefault(); e.currentTarget.style.background = 'var(--terracotta-100)'; e.currentTarget.style.borderColor = 'var(--primary)' }}
+                          onDragLeave={e => { e.currentTarget.style.background = entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)'; e.currentTarget.style.borderColor = '' }}
+                          onDrop={e => { e.currentTarget.style.background = entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)'; e.currentTarget.style.borderColor = ''; handleDrop(di, slotKey) }}
+                          onClick={() => handleSlotClick(di, slotKey)}
+                          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe && !dragging) e.currentTarget.style.background = 'var(--terracotta-100)' }}
+                          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { if (entry?.recipe) e.currentTarget.style.background = 'var(--surface-warm)' }}
+                          style={{
+                            flex: 1, minHeight: 68, borderRadius: 'var(--radius-md)',
+                            padding: 'var(--space-2)',
+                            border: isHighlighted ? '2px solid var(--primary)' : `1px ${entry?.recipe ? 'solid' : 'dashed'} var(--border-subtle)`,
+                            background: isHighlighted ? 'var(--terracotta-100)' : entry?.recipe ? 'var(--surface-warm)' : 'var(--surface-sunken)',
+                            cursor: dragging ? 'copy' : entry?.recipe ? 'pointer' : 'default',
+                            transition: 'background var(--dur-fast), border-color var(--dur-fast)',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div style={{
+                            fontSize: 10, fontWeight: 'var(--fw-bold)',
+                            color: 'var(--text-subtle)', marginBottom: 3, textTransform: 'uppercase',
+                          }}>
+                            {idx === 0 ? '1°' : '2°'}
+                          </div>
+                          {entry?.recipe ? (
+                            <>
+                              <div style={{
+                                fontFamily: 'var(--font-display)', fontSize: 'var(--text-xs)',
+                                fontWeight: 'var(--fw-semibold)', color: 'var(--text-strong)',
+                                lineHeight: 'var(--leading-snug)', marginBottom: 3,
+                                overflow: 'hidden', textOverflow: 'ellipsis',
+                                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                              }}>
+                                {entry.recipe.name}
+                              </div>
+                              <span className={`badge badge-sm ${group.badge}`}>{group.label}</span>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 10, color: 'var(--text-subtle)', marginTop: 2 }}>
+                              Arrastra aquí
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              )
-            })
-          )}
+              ))}
         </div>
       </div>
 

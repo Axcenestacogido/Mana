@@ -39,6 +39,7 @@ def recipe_to_response(recipe: Recipe) -> dict:
         "name": recipe.name,
         "meal_type": recipe.meal_type,
         "category": category,
+        "season": recipe.season or "todo_el_año",
         "prep_time_minutes": recipe.prep_time_minutes,
         "servings": recipe.servings,
         "steps": steps,
@@ -103,6 +104,7 @@ def create_recipe(recipe_in: RecipeCreate, db: Session = Depends(get_db)):
         name=recipe_in.name,
         meal_type=recipe_in.meal_type,
         category=json.dumps(recipe_in.category, ensure_ascii=False),
+        season=recipe_in.season or "todo_el_año",
         prep_time_minutes=recipe_in.prep_time_minutes,
         servings=recipe_in.servings,
         steps=json.dumps(recipe_in.steps, ensure_ascii=False),
@@ -142,6 +144,8 @@ def update_recipe(recipe_id: int, recipe_in: RecipeUpdate, db: Session = Depends
         recipe.steps = json.dumps(recipe_in.steps, ensure_ascii=False)
     if recipe_in.photo_url is not None:
         recipe.photo_url = recipe_in.photo_url
+    if recipe_in.season is not None:
+        recipe.season = recipe_in.season
     if recipe_in.notes is not None:
         recipe.notes = recipe_in.notes
     if recipe_in.ingredients is not None:
