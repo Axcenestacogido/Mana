@@ -32,10 +32,9 @@ const defaultForm: FormState = {
 
 const SEASONS = [
   { value: 'todo_el_año', label: 'Todo el año' },
-  { value: 'primavera',   label: 'Primavera' },
   { value: 'verano',      label: 'Verano' },
-  { value: 'otoño',       label: 'Otoño' },
   { value: 'invierno',    label: 'Invierno' },
+  { value: 'cuaresma',    label: 'Cuaresma' },
 ]
 
 export default function RecipeFormPage() {
