@@ -18,3 +18,7 @@ frontend/package-lock.json
 .DS_Store
 *.swp
 *.swo
+
+# SQLite databases
+*.db
+*.sqlite
