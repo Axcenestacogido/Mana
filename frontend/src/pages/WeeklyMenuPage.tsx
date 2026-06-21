@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X, Pencil, Trash2, Printer, Sun, Snowflake, Leaf } from 'lucide-react'
+import { Plus, RefreshCw, ShoppingCart, Share2, Copy, Check, X, Pencil, Trash2, Printer, Sun, Snowflake, Leaf, Maximize2, Minimize2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getMenus, getMenu, createMenu, updateMenu, deleteMenu, setMenuEntry, generateMenu, shareMenu, revokeShare } from '../api/menu'
 import { getRecipes } from '../api/recipes'
@@ -73,6 +73,14 @@ export default function WeeklyMenuPage() {
   const [createName, setCreateName] = useState('')
   const [createSeason, setCreateSeason] = useState('')
   const [filterSeason, setFilterSeason] = useState<string>('all')
+  const [fullWidth, setFullWidth] = useState(false)
+
+  useEffect(() => {
+    const shell = document.querySelector('.app-shell')
+    if (fullWidth) shell?.classList.add('menu-fullwidth')
+    else shell?.classList.remove('menu-fullwidth')
+    return () => shell?.classList.remove('menu-fullwidth')
+  }, [fullWidth])
 
   const MENU_COLORS = [
     { value: '', label: 'Sin color' },
@@ -272,6 +280,10 @@ export default function WeeklyMenuPage() {
               </button>
             </>
           )}
+          <button onClick={() => setFullWidth(f => !f)} className="btn btn-secondary btn-md no-print" title={fullWidth ? 'Mostrar barra lateral' : 'Ocultar barra lateral'}>
+            {fullWidth ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            {fullWidth ? 'Reducir' : 'Expandir'}
+          </button>
           <button onClick={() => window.print()} className="btn btn-secondary btn-md no-print">
             <Printer size={15} /> PDF
           </button>
