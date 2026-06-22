@@ -11,8 +11,8 @@ import type { Recipe } from '../types'
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const MEAL_GROUPS = [
-  { key: 'comida', label: 'Comida', badge: 'badge-primary', slots: ['comida_primero', 'comida_segundo'] as const },
-  { key: 'cena',   label: 'Cena',   badge: 'badge-info',    slots: ['cena_primero',   'cena_segundo']   as const },
+  { key: 'comida', label: 'Comida', badge: 'badge-primary', slots: ['comida_primero', 'comida_segundo', 'comida_postre'] as const },
+  { key: 'cena',   label: 'Cena',   badge: 'badge-info',    slots: ['cena_primero',   'cena_segundo',   'cena_postre']   as const },
 ] as const
 
 const SEASONS = [
@@ -375,7 +375,7 @@ export default function WeeklyMenuPage() {
                           {/* Slot header: number + category hint */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 3 }}>
                             <span style={{ fontSize: 8, fontWeight: 'var(--fw-bold)', color: 'var(--text-subtle)', textTransform: 'uppercase', flexShrink: 0 }}>
-                              {idx === 0 ? '1°' : '2°'}
+                              {idx === 0 ? '1°' : idx === 1 ? '2°' : 'Postre'}
                             </span>
                             {catHint && (
                               <span style={{

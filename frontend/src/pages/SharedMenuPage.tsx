@@ -49,8 +49,8 @@ export default function SharedMenuPage() {
             <div key={di}>
               <div style={{ textAlign: 'center', fontWeight: 700, padding: '10px 0', fontSize: 13, color: '#444' }}>{day}</div>
               {[
-                { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo'] },
-                { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo']   },
+                { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo', 'comida_postre'] },
+                { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo',   'cena_postre']   },
               ].map(group => (
                 <div key={group.key} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>{group.label}</div>
@@ -63,7 +63,7 @@ export default function SharedMenuPage() {
                           background: entry?.recipe ? 'white' : '#f5f0ea', overflow: 'hidden',
                         }}>
                           <div style={{ fontSize: 9, color: '#bbb', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>
-                            {idx === 0 ? '1°' : '2°'}
+                            {idx === 0 ? '1°' : idx === 1 ? '2°' : 'Postre'}
                           </div>
                           {entry?.recipe ? (
                             <>
