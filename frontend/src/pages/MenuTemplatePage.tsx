@@ -4,8 +4,8 @@ import { useCategories } from '../hooks/useCategories'
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const MEAL_GROUPS = [
-  { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo'] as const },
-  { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo']   as const },
+  { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo', 'comida_postre'] as const },
+  { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo',   'cena_postre']   as const },
 ] as const
 
 const TEMPLATE_KEY = 'mana_menu_template'
@@ -98,7 +98,7 @@ export default function MenuTemplatePage() {
                             fontSize: 9, fontWeight: 'var(--fw-bold)', textTransform: 'uppercase',
                             color: 'var(--text-subtle)', marginBottom: 3, textAlign: 'center',
                           }}>
-                            {idx === 0 ? '1°' : '2°'}
+                            {idx === 0 ? '1°' : idx === 1 ? '2°' : 'Postre'}
                           </div>
                           <select
                             value={value}

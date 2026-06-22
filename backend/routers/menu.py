@@ -232,17 +232,21 @@ def generate_menu_entries(
 
     db.query(MenuEntry).filter(MenuEntry.menu_id == menu_id).delete()
 
-    SLOTS = ["comida_primero", "comida_segundo", "cena_primero", "cena_segundo"]
+    SLOTS = ["comida_primero", "comida_segundo", "comida_postre", "cena_primero", "cena_segundo", "cena_postre"]
     used_ids: list = []
 
     for day in range(7):
         for slot in SLOTS:
+            is_postre = slot.endswith("_postre")
             meal_base = "comida" if slot.startswith("comida") else "cena"
             slot_key = f"{day}_{slot}"
-            category = body.rules.get(slot_key, "")
+            category = body.rules.get(slot_key, "Postres" if is_postre else "")
 
-            # Base pool filtered by meal type
-            pool = [r for r in recipes if r.meal_type in (meal_base, "ambas")] or recipes
+            # Base pool filtered by meal type (postres use full pool)
+            if is_postre:
+                pool = recipes[:]
+            else:
+                pool = [r for r in recipes if r.meal_type in (meal_base, "ambas")] or recipes
 
             # Filter by category if the template specifies one for this slot
             if category:
