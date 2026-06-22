@@ -78,6 +78,7 @@ export default function WeeklyMenuPage() {
   // Recipe bank filters
   const [recipeCatFilter, setRecipeCatFilter] = useState('')
   const [recipeSeasonFilter, setRecipeSeasonFilter] = useState('')
+  const [recipeSearch, setRecipeSearch] = useState('')
   // Auto-generate modal
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [generateSeason, setGenerateSeason] = useState('')
@@ -117,8 +118,9 @@ export default function WeeklyMenuPage() {
   const visibleRecipes = allRecipes.filter(r => {
     if (recipeCatFilter && !r.category.includes(recipeCatFilter)) return false
     if (recipeSeasonFilter && r.season !== recipeSeasonFilter && r.season !== 'todo_el_año') return false
+    if (recipeSearch && !r.name.toLowerCase().includes(recipeSearch.toLowerCase())) return false
     return true
-  })
+  }).sort((a, b) => a.name.localeCompare(b.name, 'es'))
 
   const createMutation = useMutation({
     mutationFn: (params: { name: string; season: string }) => {
@@ -420,6 +422,27 @@ export default function WeeklyMenuPage() {
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
             {visibleRecipes.length} de {allRecipes.length}
           </span>
+        </div>
+
+        {/* Search */}
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <input
+            type="text"
+            placeholder="Buscar receta..."
+            value={recipeSearch}
+            onChange={e => setRecipeSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--surface-card)',
+              color: 'var(--text-body)',
+              fontSize: 'var(--text-sm)',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
         </div>
 
         {/* Category filter */}
