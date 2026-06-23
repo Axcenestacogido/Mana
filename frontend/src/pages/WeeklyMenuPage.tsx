@@ -11,8 +11,8 @@ import type { Recipe } from '../types'
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 const MEAL_GROUPS = [
-  { key: 'comida', label: 'Comida', badge: 'badge-primary', slots: ['comida_primero', 'comida_segundo', 'comida_postre'] as const },
-  { key: 'cena',   label: 'Cena',   badge: 'badge-info',    slots: ['cena_primero',   'cena_segundo',   'cena_postre']   as const },
+  { key: 'comida', label: 'Comida', badge: 'badge-primary', slots: ['comida_primero', 'comida_segundo'] as const },
+  { key: 'cena',   label: 'Cena',   badge: 'badge-info',    slots: ['cena_primero',   'cena_segundo']   as const },
 ] as const
 
 const SEASONS = [
