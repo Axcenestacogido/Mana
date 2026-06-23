@@ -4,8 +4,8 @@ import { useCategories } from '../hooks/useCategories'
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const MEAL_GROUPS = [
-  { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo', 'comida_postre'] as const },
-  { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo',   'cena_postre']   as const },
+  { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo'] as const },
+  { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo']   as const },
 ] as const
 
 const TEMPLATE_KEY = 'mana_menu_template'

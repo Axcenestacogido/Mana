@@ -49,8 +49,8 @@ export default function SharedMenuPage() {
             <div key={di}>
               <div style={{ textAlign: 'center', fontWeight: 700, padding: '10px 0', fontSize: 13, color: '#444' }}>{day}</div>
               {[
-                { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo', 'comida_postre'] },
-                { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo',   'cena_postre']   },
+                { key: 'comida', label: 'Comida', slots: ['comida_primero', 'comida_segundo'] },
+                { key: 'cena',   label: 'Cena',   slots: ['cena_primero',   'cena_segundo']   },
               ].map(group => (
                 <div key={group.key} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>{group.label}</div>
