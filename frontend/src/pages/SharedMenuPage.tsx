@@ -54,7 +54,7 @@ export default function SharedMenuPage() {
               ].map(group => (
                 <div key={group.key} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', fontWeight: 700, marginBottom: 3 }}>{group.label}</div>
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {group.slots.map((slotKey, idx) => {
                       const entry = getEntry(di, slotKey)
                       return (
