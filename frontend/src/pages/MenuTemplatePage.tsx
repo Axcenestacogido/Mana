@@ -88,7 +88,7 @@ export default function MenuTemplatePage() {
                   }}>
                     {group.label}
                   </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {group.slots.map((slotKey, idx) => {
                       const fullKey = `${di}_${slotKey}`
                       const value = rules[fullKey] ?? ''

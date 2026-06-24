@@ -324,7 +324,7 @@ export default function WeeklyMenuPage() {
         marginBottom: 'var(--space-6)',
         borderTop: activeMenu?.color ? `3px solid ${activeMenu.color}` : '1px solid var(--border-subtle)',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
+        <div className="weekly-grid">
           {DAYS.map((day, di) => (
             <div key={di}>
               <div style={{
@@ -346,7 +346,7 @@ export default function WeeklyMenuPage() {
                   }}>
                     {group.label}
                   </div>
-                  <div style={{ display: 'flex', gap: 3 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {group.slots.map((slotKey, idx) => {
                       const entry = getEntry(di, slotKey)
                       const isHighlighted = touchHighlight?.day === di && touchHighlight?.meal === slotKey
