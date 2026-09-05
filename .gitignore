@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 frontend/node_modules/
+.venv/
+venv/
 
 # Build output
 frontend/dist/
@@ -22,3 +24,6 @@ frontend/package-lock.json
 # SQLite databases
 *.db
 *.sqlite
+
+# Datos de la app (montados en el contenedor)
+data/

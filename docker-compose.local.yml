@@ -1,0 +1,21 @@
+# Mana en local, sin Tailscale.
+#   docker compose -f docker-compose.local.yml up -d --build
+# Luego abre http://localhost:3000
+#
+# Para exponer la app en tu tailnet usa el docker-compose.yml principal.
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

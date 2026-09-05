@@ -22,22 +22,46 @@ Aplicación web completa para gestionar recetas de cocina y planificar el menú 
 
 1. Clonar el repositorio:
 ```bash
-git clone <repo-url>
+git clone https://github.com/Axcenestacogido/Mana.git
 cd Mana
 ```
 
-2. Configurar variables de entorno:
+2. Instalar Docker (Debian/Ubuntu). Si ya lo tienes, salta este paso:
+```bash
+sudo bash install-docker.sh
+```
+
+3. Configurar variables de entorno:
 ```bash
 cp .env.example .env
 # Editar .env y añadir tu ANTHROPIC_API_KEY
 ```
 
-3. Iniciar la aplicación:
+4. Iniciar la aplicación:
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.local.yml up -d --build
 ```
 
-4. Abrir en el navegador: http://localhost:3000
+5. Abrir en el navegador: http://localhost:3000
+
+Los datos se guardan en `./data/recipes.db`.
+
+### Exponer la app en tu tailnet (opcional)
+
+El `docker-compose.yml` principal publica Mana en Tailscale con HTTPS en lugar
+de en `localhost`. Requiere una `TS_AUTHKEY` en el `.env` (ver `.env.example`):
+
+```bash
+docker compose up -d --build
+```
+
+## Instalación sin Docker
+
+Alternativa con systemd + nginx, sin contenedores:
+
+```bash
+sudo bash install.sh
+```
 
 ## Desarrollo local
 
