@@ -1,11 +1,17 @@
-import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+# Carga el .env del repositorio al ejecutar sin Docker; en el contenedor las
+# variables ya vienen del entorno y load_dotenv no las pisa.
+BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(BACKEND_DIR.parent / ".env")
+
 from database import engine, Base
 from routers import recipes, menu, ai, shopping
-
-os.makedirs("/app/data", exist_ok=True)
 
 app = FastAPI(title="Mana - Recetas y Menú Semanal", version="1.0.0")
 
@@ -46,8 +52,9 @@ def _run_migrations():
 
 _run_migrations()
 
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+UPLOADS_DIR = BACKEND_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 app.include_router(recipes.router, prefix="/api/recipes", tags=["recipes"])
 app.include_router(menu.router, prefix="/api/menu", tags=["menu"])

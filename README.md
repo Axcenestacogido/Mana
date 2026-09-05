@@ -57,11 +57,42 @@ docker compose up -d --build
 
 ## Instalación sin Docker
 
-Alternativa con systemd + nginx, sin contenedores:
+Útil si no puedes usar Docker — por ejemplo en un Windows sin virtualización
+por hardware, donde Docker Desktop no arranca.
+
+### Windows
+
+Requiere Python 3.11+ y Node.js 20+:
+
+```powershell
+winget install -e --id Python.Python.3.11
+winget install -e --id OpenJS.NodeJS.LTS
+```
+
+Abre una **ventana nueva** de PowerShell (para que se actualice el PATH) y:
+
+```powershell
+cd $HOME\Mana
+Copy-Item .env.example .env    # edítalo y pon tu ANTHROPIC_API_KEY
+powershell -ExecutionPolicy Bypass -File .\start-windows.ps1
+```
+
+El script instala las dependencias la primera vez, arranca el backend en una
+ventana aparte y sirve el frontend en http://localhost:5173
+
+### Linux
+
+Instalación con systemd + nginx:
 
 ```bash
 sudo bash install.sh
 ```
+
+### Dónde se guardan los datos
+
+En `data/recipes.db` dentro del repositorio. Con Docker es `/app/data` dentro
+del contenedor, montado en esa misma carpeta. Puedes cambiar la ubicación con
+la variable de entorno `DATA_DIR`.
 
 ## Desarrollo local
 
